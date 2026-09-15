@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>선형 회귀 시뮬레이터</title>
+<title>경사하강법</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
@@ -214,9 +214,9 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
 
   <header class="top">
     <div>
-      <div class="eyebrow">경사하강법 실습 · Linear Regression</div>
-      <h1>선형 회귀 시뮬레이터</h1>
-      <p class="lede">데이터에 가장 잘 맞는 직선 <span class="m"><i>ŷ</i> = <i class="w">w</i><i>x</i> + <i class="b">b</i></span>를 경사하강법으로 찾아갑니다. 기울기 <span class="m"><i class="w">w</i></span>와 y절편(편향) <span class="m"><i class="b">b</i></span>가 한 번의 반복마다 <em>함께</em> 업데이트되는 과정을 단계별로 확인해 보세요.</p>
+      <div class="eyebrow">Gradient Descent · 선형 회귀 예제</div>
+      <h1>경사하강법</h1>
+      <p class="lede">비용 함수의 경사 <span class="m">∇<i>E</i></span>를 계산하고, 그 <strong>반대 방향으로 조금씩 내려가며</strong> 비용이 가장 작아지는 파라미터를 찾는 방법입니다. 여기서는 직선 <span class="m"><i>ŷ</i> = <i class="w">w</i><i>x</i> + <i class="b">b</i></span>를 예제로, 기울기 <span class="m"><i class="w">w</i></span>와 y절편(편향) <span class="m"><i class="b">b</i></span>가 한 번의 반복마다 <em>함께</em> 업데이트되는 과정을 단계별로 확인합니다.</p>
     </div>
     <div class="model" aria-live="polite">
       <span class="lbl">현재 모델</span>
@@ -291,11 +291,12 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <div class="cv" id="wrapCost"><canvas id="cvCost" role="img" aria-label="반복 횟수에 따른 비용 함수 값 그래프"></canvas></div>
       </div>
       <div class="panel chart">
-        <div class="chart-head"><h2>손실 지형 위의 이동 경로</h2><span class="note">가로 <span class="m"><i class="w">w</i></span> · 세로 <span class="m"><i class="b">b</i></span></span></div>
-        <div class="cv" id="wrapLand"><canvas id="cvLand" role="img" aria-label="w와 b에 대한 비용 함수 등고선과 경사하강법 이동 경로"></canvas></div>
+        <div class="chart-head"><h2>비용 지형을 따라 내려가는 경로</h2><span class="note">가로 <span class="m"><i class="w">w</i></span> · 세로 <span class="m"><i class="b">b</i></span></span></div>
+        <div class="cv" id="wrapLand"><canvas id="cvLand" role="img" aria-label="w와 b에 대한 비용 함수 등고선, 경사하강법 이동 경로, 현재 위치에서 내려가는 방향 화살표"></canvas></div>
         <div class="legend">
           <span><i class="key" style="border-color:var(--ink)"></i>(w, b) 이동 경로</span>
           <span><i class="key dot" style="background:var(--b)"></i>현재 위치</span>
+          <span>→ <span class="m">−∇<i>E</i></span> 내려가는 방향</span>
           <span>✕ 최소제곱 해</span>
           <span>진할수록 비용이 작음</span>
         </div>
@@ -305,7 +306,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
 
   <section class="proc">
     <div>
-      <div class="sec-h"><h2>한 번의 반복에서 일어나는 일</h2><p>현재 단계가 강조됩니다</p></div>
+      <div class="sec-h"><h2>경사하강법 한 번의 반복</h2><p>현재 단계가 강조됩니다</p></div>
       <div class="steps" id="steps">
         <article class="step" data-s="0">
           <span class="no">0</span><h3>초기화</h3>
@@ -336,11 +337,11 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           </div>
         </article>
         <article class="step" data-s="4">
-          <span class="no">4</span><h3>파라미터 업데이트 (w와 b를 동시에)</h3>
+          <span class="no">4</span><h3>경사의 반대 방향으로 파라미터 업데이트 (w와 b 동시에)</h3>
           <div class="body">
             <div class="row"><span class="m"><i class="w">w</i> := <i class="w">w</i> − <i>α</i><span class="frac"><span>∂<i>E</i></span><span>∂<i class="w">w</i></span></span> =</span> <span id="s4w" class="m"></span></div>
             <div class="row"><span class="m"><i class="b">b</i> := <i class="b">b</i> − <i>α</i><span class="frac"><span>∂<i>E</i></span><span>∂<i class="b">b</i></span></span> =</span> <span id="s4b" class="m"></span></div>
-            <p class="cap" id="s4cap">두 경사를 모두 계산한 뒤에 w와 b를 한꺼번에 바꿉니다. 그다음 Step 1로 돌아갑니다.</p>
+            <p class="cap" id="s4cap">두 경사를 모두 계산한 뒤, 경사에 <span class="m"><i>α</i></span>를 곱한 만큼 w와 b를 한꺼번에 반대 방향으로 옮깁니다. 비용 지형의 <span class="m">−∇<i>E</i></span> 화살표가 이 이동 방향입니다. 그다음 Step 1로 돌아갑니다.</p>
           </div>
         </article>
       </div>
@@ -371,7 +372,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   <section class="notes">
     <div class="panel note-card">
       <h2>왜 b는 w보다 느리게 움직일까?</h2>
-      <p><span class="m"><i class="w">w</i></span>의 경사에는 <span class="m"><i>x</i><sub><i>i</i></sub></span>가 곱해지므로, x 값이 0~10일 때 <span class="m"><i class="w">w</i></span>는 <span class="m"><i class="b">b</i></span>보다 몇 배 크게 움직입니다. 그래서 학습 초반에는 직선이 원점 근처에서 <strong>회전</strong>하듯 기울기부터 맞춰지고, 이후 <strong>평행이동</strong>하듯 절편이 천천히 따라옵니다. 손실 지형의 등고선이 길쭉한 골짜기 모양인 것도 이 때문입니다.</p>
+      <p><span class="m"><i class="w">w</i></span>의 경사에는 <span class="m"><i>x</i><sub><i>i</i></sub></span>가 곱해지므로, x 값이 0~10일 때 <span class="m"><i class="w">w</i></span>는 <span class="m"><i class="b">b</i></span>보다 몇 배 크게 움직입니다. 그래서 학습 초반에는 직선이 원점 근처에서 <strong>회전</strong>하듯 기울기부터 맞춰지고, 이후 <strong>평행이동</strong>하듯 절편이 천천히 따라옵니다. 비용 지형의 등고선이 길쭉한 골짜기 모양이고, 처음 <span class="m">−∇<i>E</i></span> 화살표가 거의 가로(<span class="m"><i class="w">w</i></span> 방향)를 가리키는 것도 이 때문입니다.</p>
       <p>‘자동 실행’으로 충분히 반복하면 <span class="m"><i class="b">b</i></span>도 최소제곱 해에 도달합니다. 학습률을 너무 크게 하면 비용이 폭증하는 <strong>발산</strong>을 볼 수 있습니다.</p>
     </div>
     <div class="panel note-card">
@@ -383,8 +384,10 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <dt class="m"><i class="b">b</i></dt><dd>y절편 = 편향(bias). x = 0일 때의 예측값</dd>
         <dt class="m"><i>ŷ</i> = <i class="w">w</i><i>x</i> + <i class="b">b</i></dt><dd>가설(예측) 함수</dd>
         <dt class="m"><i>E</i>(<i class="w">w</i>, <i class="b">b</i>)</dt><dd>비용 함수: 오차 제곱의 평균 ÷ 2</dd>
-        <dt class="m">∂<i>E</i>/∂<i class="w">w</i>, ∂<i>E</i>/∂<i class="b">b</i></dt><dd>편미분(경사, gradient). 직선의 기울기 w와 구분하세요</dd>
-        <dt class="m"><i>α</i></dt><dd>학습률. 한 번에 경사 방향으로 얼마나 이동할지</dd>
+        <dt class="m">∂<i>E</i>/∂<i class="w">w</i>, ∂<i>E</i>/∂<i class="b">b</i></dt><dd>편미분. 직선의 기울기 w와 구분하세요</dd>
+        <dt class="m">∇<i>E</i></dt><dd>경사(gradient) = (∂E/∂w, ∂E/∂b). 비용이 가장 가파르게 커지는 방향</dd>
+        <dt class="m"><i>α</i></dt><dd>학습률. 한 번에 −∇E 방향으로 얼마나 이동할지</dd>
+        <dt>경사하강법</dt><dd>−∇E 방향으로 α만큼씩 이동을 반복해 비용이 가장 작은 곳을 찾는 방법</dd>
       </dl>
       <p class="foot">원본 참고: mladdict.com Linear Regression Simulator (Θ₀ = b, Θ₁ = w)</p>
     </div>
@@ -395,7 +398,8 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
 (() => {
 const $ = id => document.getElementById(id);
 const ALPHAS = [0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1];
-const SAMPLE = [[1.0,3.3],[2.0,3.7],[3.1,4.4],[4.0,5.0],[5.2,5.5],[6.1,6.3],[7.0,6.6],[8.2,7.4],[9.1,7.9]];
+/* 최소제곱선 ŷ ≈ 0.48x + 3.01 을 기준으로 위 5개 · 아래 5개, 차이 최대 ±1.4 */
+const SAMPLE = [[0.9,4.2],[1.8,2.6],[2.6,4.4],[3.5,6.1],[4.4,3.8],[5.3,5.1],[6.1,7.2],[7.2,5.3],[8.0,7.8],[9.1,7.2]];
 const STEP_NAMES = ['초기화', '예측값 계산', '비용 계산', '경사 계산', '파라미터 업데이트'];
 const X0 = 0, X1 = 10, Y0 = 0, Y1 = 10;
 
@@ -833,7 +837,7 @@ function drawLand() {
   if (!land) {
     axes(x, ch, v => m.l + v * pw, v => m.t + ph - v * ph, [0, 1], [0, 1], 2, 2);
     x.font = `13px ${T.sans}`; x.fillStyle = T.muted; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('점을 2개 이상 찍으면 손실 지형이 나타납니다', m.l + pw / 2, m.t + ph / 2); return;
+    x.fillText('점을 2개 이상 찍으면 비용 지형이 나타납니다', m.l + pw / 2, m.t + ph / 2); return;
   }
   const { wl, wh, bl, bh } = land;
   const sx = w => m.l + (w - wl) / (wh - wl) * pw, sy = b => m.t + ph - (b - bl) / (bh - bl) * ph;
@@ -854,6 +858,30 @@ function drawLand() {
   if (path.length < 80) { x.fillStyle = T.ink; for (const p of path) { x.beginPath(); x.arc(sx(p.w), sy(p.b), 2, 0, Math.PI * 2); x.fill(); } }
   x.restore();
   const cx = Math.min(Math.max(sx(S.w), m.l), m.l + pw), cy = Math.min(Math.max(sy(S.b), m.t), m.t + ph);
+  /* −∇E arrow: the direction the next update will move (w, b), drawn at fixed length */
+  if (!S.diverged) {
+    const g = compute(S.w, S.b);
+    let dx = -g.gw * pw / (wh - wl), dy = (S.bias ? g.gb : 0) * ph / (bh - bl);
+    const len = Math.hypot(dx, dy);
+    if (len > 1e-9 && !converged(g)) {
+      const L = 44, ang = Math.atan2(dy, dx);
+      dx *= L / len; dy *= L / len;
+      const tx = cx + dx, ty = cy + dy;
+      x.globalAlpha = !S.running && S.step === 3 ? 1 : .75;
+      x.strokeStyle = T.ink; x.fillStyle = T.ink; x.lineWidth = 2; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(cx, cy); x.lineTo(tx - Math.cos(ang) * 6, ty - Math.sin(ang) * 6); x.stroke();
+      x.beginPath(); x.moveTo(tx, ty);
+      x.lineTo(tx - Math.cos(ang - .45) * 10, ty - Math.sin(ang - .45) * 10);
+      x.lineTo(tx - Math.cos(ang + .45) * 10, ty - Math.sin(ang + .45) * 10);
+      x.closePath(); x.fill();
+      x.globalAlpha = 1;
+      const lx = tx + Math.cos(ang) * 8, ly = ty + Math.sin(ang) * 8;
+      x.font = `italic 14px ${T.math}`; x.textBaseline = 'middle';
+      x.textAlign = Math.cos(ang) >= 0 ? 'left' : 'right';
+      x.lineWidth = 3; x.strokeStyle = T.surface; x.strokeText('−∇E', lx, ly);
+      x.fillStyle = T.ink; x.fillText('−∇E', lx, ly);
+    }
+  }
   ring(x, cx, cy, 5, T.b);
   x.font = `italic 15px ${T.math}`; x.fillStyle = T['w-ink']; x.textAlign = 'right'; x.textBaseline = 'bottom';
   x.fillText('w', W - m.r, H - 1);
