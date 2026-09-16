@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII 비트 변환기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#F4F6F3; --surface:#FFFFFF; --surface-2:#EDF1EC;
+  --ink:#141B18; --ink-2:#4B5752; --muted:#7F8A85;
+  --line:rgba(20,27,24,.14); --line-2:rgba(20,27,24,.07);
+  --hi:#2A78D6; --hi-ink:#1D5FB0; --hi-wash:rgba(42,120,214,.11);
+  --lo:#EB6834; --lo-ink:#B4461A; --lo-wash:rgba(235,104,52,.13);
+  --new:#6B3FD4; --new-ink:#5A30C0; --new-wash:rgba(107,63,212,.13); --new-line:rgba(107,63,212,.45);
+  --crit-bg:#FDE8E8; --crit-ink:#9E2424; --crit-line:rgba(158,36,36,.28);
+  --ring:rgba(20,27,24,.34);
+  --btn:#141B18; --btn-ink:#FFFFFF;
+  --focus:#1D5FB0;
+  --sans:"IBM Plex Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0E1210; --surface:#161B19; --surface-2:#1D2421;
+    --ink:#EDF2EF; --ink-2:#B5BFBA; --muted:#85908A;
+    --line:rgba(237,242,239,.15); --line-2:rgba(237,242,239,.08);
+    --hi:#5C9FEE; --hi-ink:#8EBBF1; --hi-wash:rgba(57,135,229,.20);
+    --lo:#E8814F; --lo-ink:#F2A075; --lo-wash:rgba(217,89,38,.22);
+    --new:#A487F0; --new-ink:#C3ABF8; --new-wash:rgba(150,110,240,.22); --new-line:rgba(176,140,240,.55);
+    --crit-bg:#3B1A1A; --crit-ink:#F4A3A3; --crit-line:rgba(244,163,163,.3);
+    --ring:rgba(237,242,239,.4);
+    --btn:#EDF2EF; --btn-ink:#0E1210;
+    --focus:#86B6EF;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0E1210; --surface:#161B19; --surface-2:#1D2421;
+  --ink:#EDF2EF; --ink-2:#B5BFBA; --muted:#85908A;
+  --line:rgba(237,242,239,.15); --line-2:rgba(237,242,239,.08);
+  --hi:#5C9FEE; --hi-ink:#8EBBF1; --hi-wash:rgba(57,135,229,.20);
+  --lo:#E8814F; --lo-ink:#F2A075; --lo-wash:rgba(217,89,38,.22);
+  --new:#A487F0; --new-ink:#C3ABF8; --new-wash:rgba(150,110,240,.22); --new-line:rgba(176,140,240,.55);
+  --crit-bg:#3B1A1A; --crit-ink:#F4A3A3; --crit-line:rgba(244,163,163,.3);
+  --ring:rgba(237,242,239,.4);
+  --btn:#EDF2EF; --btn-ink:#0E1210;
+  --focus:#86B6EF;
+}
+
+*{box-sizing:border-box}
+html{background:var(--ground)}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+.wrap{max-width:1000px;margin:0 auto;padding-inline:20px;padding-block:34px 60px;display:flex;flex-direction:column;gap:30px}
+@media (max-width:520px){.wrap{padding-inline:16px}}
+
+/* ── 머리말 ───────────────────────────── */
+.eyebrow{margin:0 0 10px;font:500 11.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0 0 12px;font:700 clamp(26px,4.4vw,36px)/1.22 var(--sans);letter-spacing:-.022em;text-wrap:balance}
+.lede{margin:0;max-width:64ch;color:var(--ink-2);font-size:15px;line-height:1.78}
+.lede code{font:500 13.5px var(--mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+
+/* ── 섹션 공통 ─────────────────────────── */
+.sec{display:flex;flex-direction:column;gap:14px}
+.sec-title{margin:0;font:600 17px/1.4 var(--sans);letter-spacing:-.01em;display:flex;align-items:baseline;gap:9px}
+.sec-title .num{font:500 12px/1 var(--mono);color:var(--muted);letter-spacing:.06em}
+.sec-desc{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.7;max-width:70ch}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.lbl{font:600 13px/1 var(--sans);color:var(--ink)}
+.lbl .tag{font:500 10.5px/1 var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:7px;text-transform:uppercase}
+.hint{font:500 11.5px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ── 입력/출력 필드 (텍스트 위에 색을 입히는 이중 레이어) ── */
+.fieldwrap{position:relative}
+.field,.mirror{
+  font:500 15px/1.75 var(--mono);
+  letter-spacing:.015em;
+  padding:13px 14px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  white-space:pre-wrap;
+  overflow-wrap:break-word;
+  word-break:normal;
+  margin:0;
+}
+.field{position:relative;display:block;width:100%;background:var(--surface-2);color:transparent;caret-color:var(--new-ink);resize:vertical;overflow:auto;min-height:92px}
+.field[readonly]{resize:none;min-height:86px;cursor:text}
+.mirror{position:absolute;inset:0;border-color:transparent;overflow:hidden;pointer-events:none;color:var(--ink);z-index:1}
+.field:focus{border-color:var(--focus);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 16%,transparent)}
+.field::placeholder{color:var(--muted)}
+
+.tk{border-radius:3px}
+.tk.nw{color:var(--new-ink);background:var(--new-wash);box-shadow:0 0 0 1px var(--new-line)}
+.tk i{font-style:normal}
+.tk i.h{color:var(--hi-ink)}
+.tk i.l{color:var(--lo-ink)}
+.tk.nw i{color:var(--new-ink)}
+.tk.hl{box-shadow:0 0 0 1.5px var(--ring);background:var(--surface)}
+.rej{color:var(--crit-ink);background:var(--crit-bg);text-decoration:line-through;border-radius:3px}
+@media (prefers-reduced-motion: no-preference){
+  .tk.nw{animation:pop .5s ease-out}
+  @keyframes pop{0%{background:var(--new);color:var(--surface)}100%{background:var(--new-wash);color:var(--new-ink)}}
+}
+
+.warn{margin:10px 0 0;padding:9px 12px;background:var(--crit-bg);color:var(--crit-ink);border:1px solid var(--crit-line);border-radius:9px;font-size:12.5px;line-height:1.6}
+.warn b{font-family:var(--mono);font-weight:600}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:11px}
+.key{display:inline-flex;align-items:center;gap:6px;font:500 11.5px/1 var(--sans);color:var(--ink-2)}
+.key::before{content:"";width:11px;height:11px;border-radius:3px;background:var(--k,var(--muted));box-shadow:0 0 0 1px var(--kl,transparent)}
+.k-new{--k:var(--new-wash);--kl:var(--new-line)}
+.k-old{--k:var(--surface-2);--kl:var(--line)}
+.k-hi{--k:var(--hi-wash);--kl:var(--hi)}
+.k-lo{--k:var(--lo-wash);--kl:var(--lo)}
+
+/* ── 버튼 ─────────────────────────────── */
+.btnrow{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:12px}
+.btnrow .lbl-sm{font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:3px}
+.btn{font:500 12.5px/1 var(--mono);padding:7px 11px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--ink-2);background:var(--surface-2)}
+.btn.ghost{color:var(--muted)}
+.btn.mini{padding:5px 9px;font-size:11.5px}
+
+/* ── 출력 2열 ─────────────────────────── */
+.outs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.outs{grid-template-columns:1fr}}
+.note{margin:9px 0 0;font-size:11.5px;line-height:1.6;color:var(--muted)}
+.note b{color:var(--ink-2);font-weight:600}
+
+/* ── 분해도 카드 ──────────────────────── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:9px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 9px 9px;display:flex;flex-direction:column;align-items:center;gap:9px;transition:border-color .15s}
+.card:hover{border-color:var(--ink-2)}
+.card.nw{border-color:var(--new-line);background:linear-gradient(var(--new-wash),var(--new-wash)),var(--surface)}
+.chr{display:flex;flex-direction:column;align-items:center;gap:2px}
+.g{font:600 22px/1 var(--mono);color:var(--ink)}
+.card.nw .g{color:var(--new)}
+.card.nw .kind{color:var(--new-ink)}
+.kind{font:500 10px/1 var(--sans);color:var(--muted)}
+.halves{display:flex;gap:7px}
+.half{display:flex;flex-direction:column;align-items:center;--c:var(--hi-ink);--w:var(--hi-wash)}
+.half.lo{--c:var(--lo-ink);--w:var(--lo-wash)}
+.nib{display:flex;gap:1px;padding:4px 5px;border-radius:6px;background:var(--w);color:var(--c);font:600 13px/1 var(--mono)}
+.nib b{font-weight:600;width:9px;text-align:center}
+.br{position:relative;width:100%;height:15px;color:var(--c)}
+.br::before{content:"";position:absolute;left:9px;right:9px;top:2px;bottom:7px;border:1.5px solid currentColor;border-top:none;border-radius:0 0 5px 5px;opacity:.55}
+.br::after{content:"";position:absolute;left:50%;bottom:0;width:1.5px;height:7px;background:currentColor;transform:translateX(-50%);opacity:.55}
+.hd{font:600 17px/1 var(--mono);color:var(--c);padding:4px 8px;border:1px solid currentColor;border-radius:6px;background:var(--w)}
+.meta{width:100%;display:flex;justify-content:space-between;gap:6px;padding-top:8px;border-top:1px dashed var(--line);font:500 10.5px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.meta span b{color:var(--ink-2);font-weight:600}
+.empty{margin:0;padding:26px 16px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--line);border-radius:12px}
+
+/* ── 참고 블록 ────────────────────────── */
+.ref{background:var(--surface-2);border:1px solid var(--line-2);border-radius:14px;padding:16px}
+.ref h3{margin:0 0 6px;font:600 13.5px/1.4 var(--sans)}
+.ref p{margin:0 0 12px;font-size:12.5px;line-height:1.7;color:var(--ink-2);max-width:72ch}
+.ref p .m{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:6px}
+.chip{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 9px;background:var(--surface);border:1px solid var(--line-2);border-radius:7px;font:500 12.5px/1 var(--mono);color:var(--ink-2);transition:border-color .12s,background .12s}
+.chip .cv{font-weight:600;color:var(--ink)}
+.chip.on-hi{border-color:var(--hi);background:var(--hi-wash);color:var(--hi-ink)}
+.chip.on-hi .cv,.chip.on-lo .cv{color:inherit}
+.chip.on-lo{border-color:var(--lo);background:var(--lo-wash);color:var(--lo-ink)}
+
+details.ref{padding:0}
+details.ref > summary{list-style:none;cursor:pointer;padding:14px 16px;font:600 13.5px/1.4 var(--sans);display:flex;align-items:center;justify-content:space-between;gap:10px}
+details.ref > summary::-webkit-details-marker{display:none}
+details.ref > summary .caret{font:500 11px var(--mono);color:var(--muted)}
+details[open].ref > summary .caret::after{content:"닫기"}
+details:not([open]).ref > summary .caret::after{content:"열기"}
+.tbody{padding:0 16px 16px}
+.asciigrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:5px}
+.ac{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 3px;background:var(--surface);border:1px solid var(--line-2);border-radius:6px;cursor:pointer;font-family:var(--mono)}
+.ac:hover{border-color:var(--ink-2)}
+.ac .acg{font:600 14px/1 var(--mono);color:var(--ink)}
+.ac .ach{font:400 9.5px/1 var(--mono);color:var(--muted)}
+
+footer{margin:0;padding-top:4px;color:var(--muted);font-size:11.5px;line-height:1.75;border-top:1px solid var(--line-2)}
+footer p{margin:10px 0 0;max-width:72ch}
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">데이터 표현 실습 · 문자 인코딩</p>
+    <h1>문자 한 글자가 1바이트가 되기까지</h1>
+    <p class="lede">아래 칸에 영문·숫자·기호를 입력하면 각 글자가 ASCII 코드값으로 바뀌고, 그 값이 곧바로 2진법 여덟 자리와 16진법 두 자리로 나타납니다. 방금 입력한 글자와 그 코드는 <strong>보라색</strong>으로 드러나니, 글자 하나를 더할 때 코드가 어디에 붙는지 따라가 보세요.</p>
+  </header>
+
+  <section class="sec">
+    <div class="panel">
+      <div class="panel-head">
+        <label class="lbl" for="src">문자 입력<span class="tag">input</span></label>
+        <span class="hint"><span id="count">0</span> / 48자</span>
+      </div>
+      <div class="fieldwrap">
+        <div class="mirror" id="srcMirror" aria-hidden="true"></div>
+        <textarea id="src" class="field" rows="3" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="Hello, 2026!"></textarea>
+      </div>
+      <p class="warn" id="warn" hidden></p>
+      <div class="legend">
+        <span class="key k-new">방금 입력한 문자</span>
+        <span class="key k-old">이전에 입력한 문자</span>
+      </div>
+      <div class="btnrow">
+        <span class="lbl-sm">예시</span>
+        <button type="button" class="btn" data-sample="Hello!">Hello!</button>
+        <button type="button" class="btn" data-sample="Line 7">Line 7</button>
+        <button type="button" class="btn" data-sample="UOS 2026">UOS 2026</button>
+        <button type="button" class="btn" data-sample="A a 0 !">A a 0 !</button>
+        <button type="button" class="btn ghost" id="clear">지우기</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2 class="sec-title"><span class="num">01</span>같은 값을 두 가지 방법으로 읽기</h2>
+    <p class="sec-desc">두 칸은 서로 다른 값이 아니라 <strong>같은 비트를 다르게 적은 것</strong>입니다. 8비트를 한 줄로 쓰면 왼쪽 칸, 네 비트씩 묶어 한 자리로 줄이면 오른쪽 칸이 됩니다. 앞쪽 4비트는 <span style="color:var(--hi-ink);font-weight:600">파란색</span>, 뒤쪽 4비트는 <span style="color:var(--lo-ink);font-weight:600">주황색</span>으로 두 칸에 똑같이 표시했습니다.</p>
+    <div class="outs">
+      <div class="panel">
+        <div class="panel-head">
+          <label class="lbl" for="bin">2진법 ASCII<span class="tag">base 2</span></label>
+          <button type="button" class="btn mini" data-copy="bin">복사</button>
+        </div>
+        <div class="fieldwrap">
+          <div class="mirror" id="binMirror" aria-hidden="true"></div>
+          <textarea id="bin" class="field" rows="3" readonly></textarea>
+        </div>
+        <p class="note">한 글자 = <b>8비트</b> = 1바이트. 0과 1 여덟 자리가 컴퓨터가 실제로 저장하는 모습입니다.</p>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <label class="lbl" for="hex">16진법 ASCII<span class="tag">base 16</span></label>
+          <button type="button" class="btn mini" data-copy="hex">복사</button>
+        </div>
+        <div class="fieldwrap">
+          <div class="mirror" id="hexMirror" aria-hidden="true"></div>
+          <textarea id="hex" class="field" rows="3" readonly></textarea>
+        </div>
+        <p class="note">한 글자 = <b>16진수 두 자리</b>. 같은 8비트를 네 배 짧게 적은 것뿐, 값은 그대로입니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2 class="sec-title"><span class="num">02</span>4비트를 접으면 16진수 한 자리</h2>
+    <p class="sec-desc">8비트를 4비트씩 둘로 자른 조각을 <strong>니블(nibble)</strong>이라고 부릅니다. 니블 하나가 만들 수 있는 값은 0000~1111, 즉 16가지 — 그래서 16진수 한 자리와 정확히 짝이 맞습니다. 카드 위에 마우스를 올리면 위 두 칸과 아래 대조표에서 같은 자리가 함께 표시됩니다.</p>
+    <div class="legend" style="margin-top:0">
+      <span class="key k-hi">상위 니블 · 앞 4비트</span>
+      <span class="key k-lo">하위 니블 · 뒤 4비트</span>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section class="sec">
+    <div class="ref">
+      <h3>니블 ↔ 16진수 대조표</h3>
+      <p>니블 안의 네 자리는 각각 <span class="m">8 · 4 · 2 · 1</span>의 무게를 가집니다. 예를 들어 <span class="m">1101</span>은 8+4+1 = 13이고, 10진수 10부터는 숫자가 모자라 <span class="m">A~F</span>를 씁니다 — 그래서 13은 <span class="m">D</span>입니다.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <details class="ref">
+    <summary>ASCII 표 · 32~126번 (눌러서 입력에 추가)<span class="caret"></span></summary>
+    <div class="tbody">
+      <div class="asciigrid" id="asciigrid"></div>
+    </div>
+  </details>
+
+  <footer>
+    <p>ASCII는 0~127번, 모두 128자리뿐인 표입니다. 한글은 이 표에 자리가 없어 입력되지 않으며, 실제로는 한 글자에 3바이트를 쓰는 UTF-8 같은 다른 약속으로 저장합니다. 0~31번과 127번은 화면에 그릴 수 없는 제어문자라 이 실습에서는 줄바꿈(10번)만 예외로 허용합니다.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var MAX = 48;
+  var src = document.getElementById('src');
+  var srcMirror = document.getElementById('srcMirror');
+  var bin = document.getElementById('bin');
+  var binMirror = document.getElementById('binMirror');
+  var hex = document.getElementById('hex');
+  var hexMirror = document.getElementById('hexMirror');
+  var cards = document.getElementById('cards');
+  var chips = document.getElementById('chips');
+  var warnEl = document.getElementById('warn');
+  var countEl = document.getElementById('count');
+
+  var prevValue = '';
+  var range = null;          // 방금 추가된 구간 {start, end}
+  var composing = false;
+  var warnTimer = 0;
+
+  /* ── 문자 판정 ── */
+  function ok(ch){ var c = ch.charCodeAt(0); return (c >= 0x20 && c <= 0x7e) || c === 0x0a; }
+  function esc(ch){ return ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch; }
+
+  function clean(raw){
+    var s = String(raw).replace(/\r\n?/g, '\n').replace(/\t/g, ' ');
+    var out = '', bad = [], chars = Array.from(s);
+    for (var i = 0; i < chars.length; i++){
+      if (ok(chars[i])) out += chars[i]; else bad.push(chars[i]);
+    }
+    return { out: out, bad: bad };
+  }
+
+  function showWarn(bad, trimmed){
+    var parts = [];
+    if (bad && bad.length){
+      var uniq = [], seen = {};
+      for (var i = 0; i < bad.length; i++){ if (!seen[bad[i]]){ seen[bad[i]] = 1; uniq.push(bad[i]); } }
+      var list = uniq.slice(0, 6).map(function(c){ return '<b>' + esc(c) + '</b>'; }).join(' ');
+      parts.push('ASCII에 없는 문자라 입력되지 않았습니다 — ' + list + (uniq.length > 6 ? ' 외' : '') + '. 영문·숫자·기호만 코드로 바꿀 수 있습니다.');
+    }
+    if (trimmed) parts.push('최대 ' + MAX + '자까지 입력할 수 있습니다.');
+    if (!parts.length) return;
+    warnEl.innerHTML = parts.join(' ');
+    warnEl.hidden = false;
+    clearTimeout(warnTimer);
+    warnTimer = setTimeout(function(){ warnEl.hidden = true; }, 6000);
+  }
+
+  /* ── 입력값 정리 + 커서 유지 ── */
+  function sanitizeField(){
+    var raw = src.value;
+    var pos = src.selectionStart == null ? raw.length : src.selectionStart;
+    var head = clean(raw.slice(0, pos));
+    var tail = clean(raw.slice(pos));
+    var v = head.out + tail.out;
+    var caret = head.out.length;
+    var trimmed = false;
+    if (v.length > MAX){ v = v.slice(0, MAX); caret = Math.min(caret, MAX); trimmed = true; }
+    if (v !== raw){
+      src.value = v;
+      try { src.setSelectionRange(caret, caret); } catch (e) {}
+    }
+    var bad = head.bad.concat(tail.bad);
+    if (bad.length || trimmed) showWarn(bad, trimmed);
+    return v;
+  }
+
+  /* ── 새로 들어온 구간 계산 ── */
+  function diff(a, b){
+    var min = Math.min(a.length, b.length), p = 0, s = 0;
+    while (p < min && a.charAt(p) === b.charAt(p)) p++;
+    while (s < min - p && a.charAt(a.length - 1 - s) === b.charAt(b.length - 1 - s)) s++;
+    var end = b.length - s;
+    return end > p ? { start: p, end: end } : null;
+  }
+  function isNew(i){ return !!range && i >= range.start && i < range.end; }
+
+  /* ── 그리기 ── */
+  function pad(){ return '<span class="pad">\n</span>'; }
+
+  function drawSrc(v){
+    var html = '';
+    for (var i = 0; i < v.length; i++){
+      html += '<span class="tk' + (isNew(i) ? ' nw' : '') + '" data-i="' + i + '">' + esc(v.charAt(i)) + '</span>';
+    }
+    srcMirror.innerHTML = html + pad();
+  }
+
+  function drawComposing(){
+    var raw = src.value, chars = Array.from(raw), html = '';
+    var bad = [];
+    for (var i = 0; i < chars.length; i++){
+      if (ok(chars[i])) html += '<span class="tk">' + esc(chars[i]) + '</span>';
+      else { html += '<span class="rej">' + esc(chars[i]) + '</span>'; bad.push(chars[i]); }
+    }
+    srcMirror.innerHTML = html + pad();
+    if (bad.length) showWarn(bad, false);
+  }
+
+  function drawOut(mirror, tokens){
+    var html = [];
+    for (var i = 0; i < tokens.length; i++){
+      var t = tokens[i];
+      html.push('<span class="tk' + (t.nw ? ' nw' : '') + '" data-i="' + t.i + '"><i class="h">' + t.h + '</i><i class="l">' + t.l + '</i></span>');
+    }
+    mirror.innerHTML = html.join(' ') + pad();
+  }
+
+  function kindOf(ch){
+    if (ch === ' ') return '공백';
+    if (ch === '\n') return '줄바꿈';
+    if (ch >= 'A' && ch <= 'Z') return '대문자';
+    if (ch >= 'a' && ch <= 'z') return '소문자';
+    if (ch >= '0' && ch <= '9') return '숫자';
+    return '기호';
+  }
+  function glyphOf(ch){ return ch === ' ' ? '␠' : ch === '\n' ? '↵' : esc(ch); }
+
+  function bitsHtml(four){
+    var out = '';
+    for (var i = 0; i < 4; i++) out += '<b>' + four.charAt(i) + '</b>';
+    return out;
+  }
+
+  function drawCards(v, codes){
+    if (!v.length){
+      cards.innerHTML = '<p class="empty">문자를 입력하면 여기에서 한 글자씩 8비트로 펼쳐집니다.</p>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < v.length; i++){
+      var ch = v.charAt(i), c = codes[i];
+      var b = c.toString(2);
+      while (b.length < 8) b = '0' + b;
+      var h = c.toString(16).toUpperCase();
+      while (h.length < 2) h = '0' + h;
+      html +=
+        '<article class="card' + (isNew(i) ? ' nw' : '') + '" data-i="' + i + '" data-hi="' + b.slice(0,4) + '" data-lo="' + b.slice(4) + '">' +
+          '<div class="chr"><span class="g">' + glyphOf(ch) + '</span><span class="kind">' + kindOf(ch) + '</span></div>' +
+          '<div class="halves">' +
+            '<div class="half hi"><span class="nib">' + bitsHtml(b.slice(0,4)) + '</span><span class="br"></span><span class="hd">' + h.charAt(0) + '</span></div>' +
+            '<div class="half lo"><span class="nib">' + bitsHtml(b.slice(4)) + '</span><span class="br"></span><span class="hd">' + h.charAt(1) + '</span></div>' +
+          '</div>' +
+          '<div class="meta"><span>HEX <b>' + h + '</b></span><span>DEC <b>' + c + '</b></span></div>' +
+        '</article>';
+    }
+    cards.innerHTML = html;
+  }
+
+  function render(v){
+    var codes = [], binTok = [], hexTok = [];
+    for (var i = 0; i < v.length; i++){
+      var c = v.charCodeAt(i);
+      codes.push(c);
+      var b = c.toString(2); while (b.length < 8) b = '0' + b;
+      var h = c.toString(16).toUpperCase(); while (h.length < 2) h = '0' + h;
+      binTok.push({ i: i, h: b.slice(0,4), l: b.slice(4), nw: isNew(i) });
+      hexTok.push({ i: i, h: h.charAt(0), l: h.charAt(1), nw: isNew(i) });
+    }
+    countEl.textContent = v.length;
+    bin.value = binTok.map(function(t){ return t.h + t.l; }).join(' ');
+    hex.value = hexTok.map(function(t){ return t.h + t.l; }).join(' ');
+    drawSrc(v);
+    drawOut(binMirror, binTok);
+    drawOut(hexMirror, hexTok);
+    drawCards(v, codes);
+  }
+
+  function refresh(){
+    var v = sanitizeField();
+    range = diff(prevValue, v);
+    prevValue = v;
+    render(v);
+  }
+
+  /* ── 입력 이벤트 ── */
+  src.addEventListener('compositionstart', function(){ composing = true; });
+  src.addEventListener('compositionend', function(){ composing = false; refresh(); });
+  src.addEventListener('input', function(e){
+    if (composing || e.isComposing){ drawComposing(); return; }
+    refresh();
+  });
+  src.addEventListener('beforeinput', function(e){
+    if (e.data && e.inputType === 'insertText' && clean(e.data).bad.length){
+      e.preventDefault();
+      showWarn(clean(e.data).bad, false);
+    }
+  });
+
+  /* ── 스크롤 동기화 ── */
+  [[src, srcMirror], [bin, binMirror], [hex, hexMirror]].forEach(function(pair){
+    pair[0].addEventListener('scroll', function(){
+      pair[1].scrollTop = pair[0].scrollTop;
+      pair[1].scrollLeft = pair[0].scrollLeft;
+    });
+  });
+
+  /* ── 예시 · 지우기 · 복사 ── */
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-sample],[data-copy],#clear,.ac') : null;
+    if (!el) return;
+    if (el.id === 'clear'){
+      src.value = ''; prevValue = ''; range = null; render(''); src.focus(); return;
+    }
+    if (el.hasAttribute('data-sample')){
+      src.value = el.getAttribute('data-sample');
+      prevValue = ''; refresh(); src.focus(); return;
+    }
+    if (el.classList.contains('ac')){
+      insert(el.getAttribute('data-ch')); return;
+    }
+    var target = el.getAttribute('data-copy') === 'bin' ? bin : hex;
+    var done = function(){
+      var t = el.textContent; el.textContent = '복사됨';
+      setTimeout(function(){ el.textContent = t; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(target.value).then(done, function(){ target.select(); done(); });
+    } else { target.select(); try { document.execCommand('copy'); } catch (err) {} done(); }
+  });
+
+  function insert(text){
+    var s = src.selectionStart == null ? src.value.length : src.selectionStart;
+    var e = src.selectionEnd == null ? s : src.selectionEnd;
+    if (src.setRangeText) src.setRangeText(text, s, e, 'end');
+    else src.value = src.value.slice(0, s) + text + src.value.slice(e);
+    src.focus();
+    refresh();
+  }
+
+  /* ── 카드 ↔ 출력칸 ↔ 대조표 연결 ── */
+  function link(i, on){
+    [srcMirror, binMirror, hexMirror].forEach(function(m){
+      var el = m.querySelector('[data-i="' + i + '"]');
+      if (el) el.classList.toggle('hl', on);
+    });
+  }
+  var linked = null;
+  function clearLink(){
+    if (linked !== null) link(linked, false);
+    linked = null;
+    Array.prototype.forEach.call(chips.children, function(c){ c.classList.remove('on-hi', 'on-lo'); });
+  }
+  cards.addEventListener('pointerover', function(e){
+    var card = e.target.closest ? e.target.closest('.card') : null;
+    if (!card) return;
+    var i = +card.getAttribute('data-i');
+    if (linked === i) return;
+    clearLink();
+    linked = i; link(i, true);
+    var hiChip = chips.querySelector('[data-bits="' + card.getAttribute('data-hi') + '"]');
+    var loChip = chips.querySelector('[data-bits="' + card.getAttribute('data-lo') + '"]');
+    if (hiChip) hiChip.classList.add('on-hi');
+    if (loChip) loChip.classList.add('on-lo');
+  });
+  cards.addEventListener('pointerleave', clearLink);
+
+  /* ── 대조표 · ASCII 표 생성 ── */
+  (function(){
+    var html = '';
+    for (var v = 0; v < 16; v++){
+      var b = v.toString(2); while (b.length < 4) b = '0' + b;
+      html += '<div class="chip" data-bits="' + b + '"><span>' + b + '</span><span class="cv">' + v.toString(16).toUpperCase() + '</span></div>';
+    }
+    chips.innerHTML = html;
+
+    var grid = document.getElementById('asciigrid'), g = '';
+    for (var c = 32; c <= 126; c++){
+      var ch = String.fromCharCode(c);
+      var h = c.toString(16).toUpperCase(); if (h.length < 2) h = '0' + h;
+      g += '<button type="button" class="ac" data-ch="' + esc(ch).replace(/"/g, '&quot;') + '" title="' + c + '번 · 0x' + h + '">' +
+             '<span class="acg">' + (c === 32 ? '␠' : esc(ch)) + '</span><span class="ach">' + h + '</span></button>';
+    }
+    grid.innerHTML = g;
+  })();
+
+  /* ── 첫 화면 ── */
+  src.value = 'Hi!';
+  prevValue = 'Hi';
+  range = { start: 2, end: 3 };
+  render('Hi!');
+})();
+</script>
+</body>
+</html>
