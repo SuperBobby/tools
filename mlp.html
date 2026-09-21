@@ -100,6 +100,30 @@ button,select,input{font:inherit;color:inherit}
 .val{font-family:var(--mono);font-size:.84em;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--surface-2);padding:1px 6px;border-radius:4px;white-space:nowrap}
 .val.pending{color:var(--muted)}
 
+/* ---------- tabs ---------- */
+.wrap>.tabsec{order:99}
+.wrap[data-tab="0"]>.tabsec{order:var(--o0,99)}
+.wrap[data-tab="1"]>.tabsec{order:var(--o1,99)}
+.wrap[data-tab="2"]>.tabsec{order:var(--o2,99)}
+.wrap[data-tab="3"]>.tabsec{order:var(--o3,99)}
+.wrap[data-tab="0"]>.tabsec:not(.t0),
+.wrap[data-tab="1"]>.tabsec:not(.t1),
+.wrap[data-tab="2"]>.tabsec:not(.t2),
+.wrap[data-tab="3"]>.tabsec:not(.t3){display:none}
+.wrap>header.top{order:-3}
+.wrap>nav.rail{order:-2}
+
+/* 학습 탭에서는 데이터 표를 짧게, 평가용 행은 잠긴 것으로 보여 줍니다 */
+.wrap[data-tab="1"] .dwrap{max-height:232px}
+.wrap[data-tab="1"] .dwrap tbody tr.te-row td{
+  color:var(--muted);
+  background-image:repeating-linear-gradient(135deg,transparent 0 6px,var(--surface-2) 6px 7px);
+}
+.wrap[data-tab="1"] .dwrap tbody tr.te-row:hover td{background-color:transparent}
+.wrap[data-tab="2"] .dwrap tbody tr.tr-row td{color:var(--muted);opacity:.6}
+.lockline{font-size:12px;color:var(--b-ink);background:var(--b-wash);border-radius:6px;padding:5px 10px;display:none}
+.wrap[data-tab="1"] .lockline{display:block}
+
 /* ---------- phase rail ---------- */
 .rail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .ph{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;transition:border-color .2s,box-shadow .2s,opacity .2s;min-width:0}
@@ -348,7 +372,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" data-tab="0">
 
   <header class="top">
     <div>
@@ -382,7 +406,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </button>
   </nav>
 
-  <section class="panel" aria-label="학습 상태와 조작">
+  <section class="panel tabsec t1" id="secStatus" style="--o1:2" aria-label="학습 상태와 조작">
     <div class="status">
       <div class="it">에폭 <b id="stEpoch">0</b></div>
       <div class="it">업데이트 <b id="stIter">0</b>회</div>
@@ -416,8 +440,9 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <label class="glbl" for="batchSel">배치 크기</label>
         <select class="btn" id="batchSel">
           <option value="1" selected>1 (샘플 하나씩)</option>
-          <option value="2">2 (미니배치)</option>
           <option value="4">4 (미니배치)</option>
+          <option value="8">8 (미니배치)</option>
+          <option value="16">16 (미니배치)</option>
           <option value="0">전체 (배치 학습)</option>
         </select>
       </div>
@@ -433,11 +458,11 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <div class="group">
         <label class="glbl" for="targetSel">목표 에폭</label>
         <select class="btn" id="targetSel">
+          <option value="30">30</option>
           <option value="50">50</option>
-          <option value="100">100</option>
-          <option value="200" selected>200</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
           <option value="500">500</option>
-          <option value="1000">1000</option>
           <option value="0">무제한</option>
         </select>
       </div>
@@ -461,7 +486,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="bench">
+  <section class="bench tabsec t1 t2 t3" id="secBench" style="--o1:3;--o2:3;--o3:2">
     <div class="panel chart">
       <div class="chart-head">
         <h2>신경망 <span style="font-weight:400;color:var(--muted)" id="netArch"></span></h2>
@@ -511,7 +536,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="proc">
+  <section class="proc tabsec t1" id="secProc" style="--o1:4">
     <div>
       <div class="sec-h"><h2>가중치 한 번 갱신하기</h2><p>현재 단계가 강조됩니다</p></div>
       <div class="steps" id="steps">
@@ -579,7 +604,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="bench">
+  <section class="bench tabsec t1" id="secInspect" style="--o1:5">
     <div class="panel chart">
       <div class="chart-head"><h2>뉴런 하나 들여다보기</h2><span class="note" id="inspName">–</span></div>
       <div class="tablebox">
@@ -605,10 +630,10 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="block" id="blkData">
+  <section class="block tabsec t0 t1 t2" id="blkData" style="--o0:2;--o1:1;--o2:2">
     <div class="sec-h">
-      <h2>데이터 — 학습용과 평가용 나누기</h2>
-      <p>행을 클릭하면 학습용과 평가용이 바뀝니다</p>
+      <h2 id="dataH2">데이터 — 학습용과 평가용 나누기</h2>
+      <p id="dataHint">행을 클릭하면 학습용과 평가용이 바뀝니다</p>
     </div>
     <div class="panel dpanel">
       <div class="splitbar">
@@ -622,6 +647,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <span class="spacer"></span>
         <div class="counts" id="counts"></div>
       </div>
+      <p class="lockline" id="lockLine"></p>
       <div class="dwrap">
         <table id="dtbl">
           <thead><tr>
@@ -635,7 +661,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="block" id="blkTest">
+  <section class="block tabsec t2" id="blkTest" style="--o2:1">
     <div class="sec-h">
       <h2>평가 (Test) — 가중치를 고정하고 처음 보는 데이터로</h2>
       <p><span class="gate">학습을 한 번이라도 진행한 뒤에 쓸 수 있습니다</span></p>
@@ -653,9 +679,14 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <div class="results">
         <div style="display:flex;flex-direction:column;gap:12px">
           <div>
-            <span class="tl" style="font-size:12px;color:var(--muted)">평가 정확도</span>
+            <span class="tl" style="font-size:12px;color:var(--muted)">평가 정확도 <span style="color:var(--ink-2)">(처음 보는 데이터)</span></span>
             <div class="bignum" id="testAccBig">–</div>
             <div class="ts" style="font-size:12px;color:var(--ink-2)" id="testAccSub">아직 채점하지 않았습니다</div>
+          </div>
+          <div>
+            <span class="tl" style="font-size:12px;color:var(--muted)">학습 정확도 <span style="color:var(--ink-2)">(외운 문제)</span></span>
+            <div class="bignum" id="trainAccBig" style="font-size:24px;color:var(--ink-2)">–</div>
+            <div class="ts" style="font-size:12px;color:var(--ink-2)" id="gapNote"></div>
           </div>
           <div class="conf" id="conf"></div>
           <p class="foot">세로: 실제 정답 · 가로: 모델 예측</p>
@@ -674,7 +705,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="block" id="blkInfer">
+  <section class="block tabsec t3" id="blkInfer" style="--o3:1">
     <div class="sec-h">
       <h2>실제 사용 (Inference) — 정답이 없는 새 입력</h2>
       <p><span class="gate">평가를 마친 뒤에 쓸 수 있습니다</span></p>
@@ -701,7 +732,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="block">
+  <section class="block tabsec t1" id="secLr" style="--o1:6">
     <div class="sec-h"><h2>학습률 <span class="m"><i>α</i></span>은 보폭입니다</h2><p>같은 초기 가중치로 세 가지 학습률을 각각 돌려 비교합니다</p></div>
     <div class="panel chart">
       <div class="chart-head">
@@ -717,7 +748,27 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
   </section>
 
-  <section class="notes">
+  <section class="notes tabsec t0" id="secNotesData" style="--o0:3">
+    <div class="panel note-card">
+      <h2>이 도구를 쓰는 순서</h2>
+      <p>위의 네 단계를 차례로 누르며 진행합니다. 각 단계에서 가장 중요한 내용이 화면 맨 위에 옵니다.</p>
+      <ul>
+        <li><strong>1 데이터 나누기</strong> — 아래 표에서 학습용과 평가용을 가릅니다. 지금 이 화면입니다.</li>
+        <li><strong>2 학습</strong> — 학습용만 신경망에 넣어 가중치를 갱신합니다.</li>
+        <li><strong>3 평가</strong> — 가중치를 고정하고, 한 번도 안 본 평가용으로 채점합니다.</li>
+        <li><strong>4 사용</strong> — 정답이 없는 새 입력을 넣어 봅니다.</li>
+      </ul>
+      <p>먼저 분할 비율만 정하고 <strong>2 학습</strong>으로 넘어가면 됩니다. 표의 행을 클릭해 직접 나눠도 됩니다.</p>
+    </div>
+    <div class="panel note-card">
+      <h2>왜 학습·평가를 나눌까</h2>
+      <p>학습 데이터에서의 정확도는 <strong>외운 문제를 다시 푼 점수</strong>에 가깝습니다. 모델이 진짜 규칙을 배웠는지 알려면 <strong>한 번도 보지 않은 데이터</strong>로 재야 합니다.</p>
+      <p>학습 손실은 계속 내려가는데 평가 성능이 더는 좋아지지 않거나 나빠지면 <strong>과적합(overfitting)</strong>입니다.</p>
+      <p>평가 결과를 보고 학습률이나 층 구조를 고치기 시작하면, 평가 데이터가 사실상 학습에 쓰인 셈이 됩니다. 그래서 실무에서는 <strong>학습 / 검증 / 평가</strong> 세 벌로 나눕니다.</p>
+    </div>
+  </section>
+
+  <section class="notes tabsec t1" id="secNotesTrain" style="--o1:7">
     <div class="panel note-card">
       <h2>에폭 · 배치 · 업데이트</h2>
       <p>학습 데이터가 <b id="n1">36</b>개, 배치 크기가 <b id="n2">1</b>이면 <strong>1 에폭 = <b id="n3">36</b>번의 가중치 업데이트</strong>입니다. 배치 크기를 키우면 한 에폭 안의 업데이트 횟수가 줄어들어 같은 에폭에서도 덜 움직입니다. 대신 여러 샘플의 경사를 평균내므로 방향이 덜 흔들립니다.</p>
@@ -726,13 +777,8 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <li><strong>미니배치</strong> — 2~4개씩 평균. 실전에서 가장 많이 쓰는 방식입니다.</li>
         <li><strong>전체 배치</strong> — 한 에폭에 딱 한 번 갱신. 가장 매끄럽지만 가장 느립니다.</li>
       </ul>
+      <p><strong>배치를 키우면 학습률도 같이 키워야 합니다.</strong> 배치가 4배가 되면 에폭당 업데이트가 4배 줄어드니, 같은 에폭 수로 비슷하게 배우려면 <span class="m"><i>α</i></span>도 약 4배가 되어야 합니다. 이 도구는 배치를 바꿀 때 <span class="m"><i>α</i></span>를 그 비율로 자동으로 맞춰 줍니다 — 물론 직접 다시 바꿔도 됩니다.</p>
       <p>같은 데이터를 여러 에폭 반복해서 보는 이유는, 한 번 봐서는 가중치가 조금밖에 못 움직이기 때문입니다.</p>
-    </div>
-    <div class="panel note-card">
-      <h2>왜 학습·평가를 나눌까</h2>
-      <p>학습 데이터에서의 정확도는 <strong>외운 문제를 다시 푼 점수</strong>에 가깝습니다. 모델이 진짜 규칙을 배웠는지 알려면 <strong>한 번도 보지 않은 데이터</strong>로 재야 합니다.</p>
-      <p>학습 손실은 계속 내려가는데 평가 성능이 더는 좋아지지 않거나 나빠지면 <strong>과적합(overfitting)</strong>입니다. 위 손실 그래프에서 ‘평가 손실 겹쳐 보기’를 켜면 두 곡선이 벌어지는 모습을 볼 수 있습니다.</p>
-      <p>평가 결과를 보고 학습률이나 층 구조를 고치기 시작하면, 평가 데이터가 사실상 학습에 쓰인 셈이 됩니다. 그래서 실무에서는 <strong>학습 / 검증 / 평가</strong> 세 벌로 나눕니다.</p>
     </div>
     <div class="panel note-card">
       <h2>이 그림에서 눈여겨볼 것</h2>
@@ -796,7 +842,7 @@ const CLS  = ['합격','불합격'];
 const ALPHAS = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];
 const STEP_NAMES = ['배치 선택','순전파 (Forward)','비용 계산','역전파 (Backward)','가중치 업데이트'];
 const MAX_UNITS = 5, MAX_LAYERS = 3;
-const TARGETS = [50, 100, 200, 500, 1000, 0];   // 0 = 무제한
+const TARGETS = [30, 50, 100, 200, 500, 0];   // 0 = 무제한
 
 const ACT = {
   sigmoid:{ name:'시그모이드', f:z=>1/(1+Math.exp(-z)), d:(z,a)=>a*(1-a), tex:'1/(1+e^-z)', lo:-6, hi:6, ylo:-0.1, yhi:1.1 },
@@ -810,7 +856,7 @@ const S = {
   hidden: [3], arch: [3,3,2],
   act: 'sigmoid', seed: 7,
   W: null, B: null, W0: null, B0: null,
-  ai: 3, batch: 1, shuffle: true, speed: 12, targetEp: 200,
+  ai: 3, batch: 1, shuffle: true, speed: 12, targetEp: 100,
   split: null,                 // 0 = 학습, 1 = 평가
   order: [], cursor: 0,
   epoch: 0, updates: 0, step: 0,
@@ -1010,9 +1056,13 @@ function renderProgress(){
     return;
   }
   const accTxt = P.last && isFinite(P.last.trAcc) ? ` · 학습 정확도 ${pct(P.last.trAcc)}` : '';
-  $('progTxt').textContent = (T ? `에폭 ${S.epoch} / ${T}` : `에폭 ${S.epoch}`) + accTxt;
+  $('progTxt').textContent =
+    (T ? `에폭 ${S.epoch} / ${T}` : `에폭 ${S.epoch}`) + ` · 업데이트 ${S.updates}회` + accTxt;
   if (P.hitTarget && !P.converged){
-    chip.className = 'readychip go'; chip.textContent = '목표 에폭 도달 — 평가로';
+    chip.className = 'readychip go';
+    chip.textContent = P.rel != null && P.rel > 0.08
+      ? '목표 도달 · 손실 아직 감소 중'
+      : '목표 에폭 도달 — 평가로';
   } else if (P.converged){
     chip.className = 'readychip go'; chip.textContent = '손실이 거의 안 줄어듭니다 — 평가로';
   } else if (P.near){
@@ -1088,7 +1138,10 @@ function advance(){
       S.epoch++; recordHist(); newEpochOrder();
       if (S.targetEp > 0 && S.epoch >= S.targetEp && S.running){
         stopRun();
-        flash('ok', `목표 ${S.targetEp} 에폭에 도달했습니다. 위 “평가 Test”로 넘어갈 수 있습니다.`, true);
+        const P = progress();
+        flash('ok', P.rel != null && P.rel > 0.08
+          ? `목표 ${S.targetEp} 에폭에 도달했습니다. 손실이 아직 줄고 있으니 더 돌려도 좋고, 이대로 “평가 Test”로 넘어가도 됩니다.`
+          : `목표 ${S.targetEp} 에폭에 도달했고 손실도 거의 평평해졌습니다. 위 “평가 Test”로 넘어가세요.`, true);
       }
     }
     S.step = 0;
@@ -1387,8 +1440,10 @@ function renderStrip(){
     const tr = $('dr-' + i); if (!tr) return;
     const isTr = S.split[i] === 0;
     const tag = tr.querySelector('.tag');
-    tag.textContent = isTr ? '학습' : '평가';
-    tag.className = 'tag ' + (isTr ? 'tr' : 'te');
+    tr.classList.toggle('tr-row', isTr);
+    tr.classList.toggle('te-row', !isTr);
+    if (S.phase === 1 && !isTr){ tag.textContent = '🔒 미사용'; tag.className = 'tag'; }
+    else { tag.textContent = isTr ? '학습' : '평가'; tag.className = 'tag ' + (isTr ? 'tr' : 'te'); }
     tr.classList.toggle('cur', curIdx.has(i) || i === focusIdx);
     tr.classList.toggle('locked', S.phase > 1);
     const pr = tr.querySelector('.pr');
@@ -1414,6 +1469,15 @@ function renderStrip(){
   $('counts').innerHTML =
     `<span class="cpill"><i class="sw" style="background:var(--w)"></i>학습 <b>${tr.length}</b>개 · 합격 ${cnt(tr,0)} / 불합격 ${cnt(tr,1)}</span>
      <span class="cpill"><i class="sw" style="background:var(--b)"></i>평가 <b>${te.length}</b>개 · 합격 ${cnt(te,0)} / 불합격 ${cnt(te,1)}</span>`;
+  const H2 = { 0:'데이터 — 학습용과 평가용 나누기', 1:'학습에 들어가는 데이터', 2:'평가에 쓰인 데이터' };
+  const HINT = { 0:'행을 클릭하면 학습용과 평가용이 바뀝니다',
+                 1:'지금 신경망에 들어간 행이 강조됩니다',
+                 2:'평가용 행만 채점했습니다 — 학습용은 흐리게 두었습니다' };
+  if ($('dataH2')) $('dataH2').textContent = H2[S.phase] || H2[0];
+  if ($('dataHint')) $('dataHint').textContent = HINT[S.phase] || HINT[0];
+  if ($('lockLine'))
+    $('lockLine').innerHTML =
+      `🔒 평가용 <b>${te.length}개</b>는 잠겨 있습니다 — 학습에 한 번도 들어가지 않습니다. 빗금 친 행이 그것입니다.`;
   document.querySelectorAll('[data-split]').forEach(b => {
     b.classList.toggle('on', splitPreset != null && Math.abs(+b.dataset.split - splitPreset) < 1e-9);
   });
@@ -1810,6 +1874,11 @@ function renderTest(){
     tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted)">아직 채점하지 않았습니다 (평가 데이터 ${te.length}개)</td></tr>`;
     $('testAccBig').textContent = '–';
     $('testAccSub').textContent = '아직 채점하지 않았습니다';
+    if ($('trainAccBig')){
+      const t0 = evalSet(S.W, S.B, trainIdx());
+      $('trainAccBig').textContent = pct(t0.acc);
+      $('gapNote').textContent = '';
+    }
     $('conf').innerHTML = confHTML(null);
     return;
   }
@@ -1823,6 +1892,12 @@ function renderTest(){
   }).join('');
   const c = res.filter(r => r.ok).length;
   $('testAccBig').textContent = pct(c/res.length);
+  const trn = evalSet(S.W, S.B, trainIdx());
+  $('trainAccBig').textContent = pct(trn.acc);
+  const gap = trn.acc - c/res.length;
+  $('gapNote').textContent = res.length < te.length ? ''
+    : (gap > 0.001 ? `학습이 ${Math.round(gap*100)}%p 더 높습니다 — 그만큼 외운 몫입니다`
+                   : '두 점수가 같습니다 — 규칙을 제대로 배웠습니다');
   $('testAccSub').textContent = `${res.length}개 중 ${c}개 맞음${res.length < te.length ? ` · ${te.length-res.length}개 남음` : ''}`;
   $('conf').innerHTML = confHTML(res);
 }
@@ -1857,6 +1932,8 @@ function setPhase(p){
   if (p < 2 && S.phase >= 2){ flash('info', '학습으로 돌아갑니다. 평가 결과를 보고 모델을 고치면 평가 점수를 믿기 어려워집니다 — 실무에서는 이럴 때 검증 데이터를 씁니다.'); }
   stopRun();
   S.phase = p;
+  document.querySelector('.wrap').dataset.tab = String(p);
+  window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   if (p === 2 && !S.testRes) S.testCursor = 0;
   if (p === 3) S.inspect = { l: S.arch.length-1, i: 0 };
   bndDirty = true;
@@ -1882,9 +1959,6 @@ function renderPhase(){
   $('aUp').disabled = $('aDown').disabled = cfgLocked;
   $('bTestAll').disabled = $('bTestStep').disabled = $('bTestReset').disabled = S.phase < 2;
   ['inS','inF','inM'].forEach(id => { $(id).disabled = S.phase < 3; });
-  $('blkTest').classList.toggle('off', S.phase < 2);
-  $('blkInfer').classList.toggle('off', S.phase < 3);
-  $('blkData').classList.toggle('off', S.phase > 1);
   $('stName').textContent = S.phase === 1 ? STEP_NAMES[S.step]
     : (S.phase === 0 ? '데이터를 나누는 중' : (S.phase === 2 ? '평가 중 — 순전파만' : '사용 중 — 순전파만'));
 }
@@ -1945,7 +2019,24 @@ $('bRun').addEventListener('click', () => { S.running ? stopRun() : startRun(); 
 $('bReset').addEventListener('click', () => { resetTraining(true); introUp = false; flash('info', '가중치를 초기값으로 되돌렸습니다. 데이터 분할은 그대로입니다.'); });
 $('aUp').addEventListener('click', () => { S.ai = Math.min(ALPHAS.length-1, S.ai+1); renderAll(); });
 $('aDown').addEventListener('click', () => { S.ai = Math.max(0, S.ai-1); renderAll(); });
-$('batchSel').addEventListener('change', e => { S.batch = +e.target.value; S.step = 0; S.cur = null; newEpochOrder(); renderAll(); });
+$('batchSel').addEventListener('change', e => {
+  const before = batchSize();
+  S.batch = +e.target.value;
+  const after = batchSize();
+  /* 배치가 n배가 되면 에폭당 업데이트가 n배 줄어듭니다.
+     같은 에폭 수로 비슷하게 배우려면 학습률도 n배가 되어야 합니다(선형 스케일링). */
+  if (after !== before && before > 0){
+    const want = lr() * (after / before);
+    let best = 0;
+    for (let i = 1; i < ALPHAS.length; i++)
+      if (Math.abs(Math.log(ALPHAS[i]/want)) < Math.abs(Math.log(ALPHAS[best]/want))) best = i;
+    if (best !== S.ai){
+      const from = lr(); S.ai = best;
+      flash('info', `배치를 ${before} → ${after}로 바꿨습니다. 에폭당 업데이트가 ${(after/before).toFixed(1)}배 줄어들어 학습률도 α ${from} → ${lr()}로 맞췄습니다. 직접 바꿔도 됩니다.`);
+    }
+  }
+  S.step = 0; S.cur = null; newEpochOrder(); renderAll();
+});
 $('speed').addEventListener('change', e => { S.speed = +e.target.value; });
 $('shuffleOn').addEventListener('change', e => { S.shuffle = e.target.checked; newEpochOrder(); renderAll(); });
 $('showTest').addEventListener('change', e => {
@@ -2004,7 +2095,9 @@ setupCanvas('cvAct', 'wrapAct', 190);
 setupCanvas('cvLr', 'wrapLr', 220);
 
 applyHidden();
+document.querySelector('.wrap').dataset.tab = String(S.phase);
 $('layerSel').value = String(S.hidden.length);
+$('batchSel').value = String(S.batch);
 $('targetSel').value = String(S.targetEp);
 $('speed').value = String(S.speed);
 autoSplit(splitRatio, splitSeq);
