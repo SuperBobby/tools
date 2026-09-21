@@ -144,6 +144,24 @@ select.btn{padding-right:28px}
 .switch input:checked{background:var(--b)}
 .switch input:checked::after{left:18px}
 .spacer{flex:1}
+.units{display:inline-flex;gap:8px;flex-wrap:wrap}
+.ustep{display:inline-flex;align-items:center;gap:3px;background:var(--surface-2);border-radius:8px;padding:2px 4px}
+.ustep .ul{font-size:11px;color:var(--muted);padding:0 2px}
+.ustep b{font-family:var(--mono);font-size:13px;font-weight:500;min-width:14px;text-align:center}
+.ustep .btn.sq{width:24px;height:24px;font-size:15px;background:var(--surface)}
+.btn.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn.on:hover:not(:disabled){background:var(--btn);opacity:.9}
+
+.progrow{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.pbar{flex:1;min-width:140px;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:var(--w);border-radius:999px;transition:width .25s}
+.pbar.done i{background:var(--pass)}
+.ptxt{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.readychip{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.readychip.go{background:var(--pass-wash);color:var(--pass-ink)}
+.readychip.near{background:var(--warn-bg);color:var(--warn-ink)}
+.readychip.work{background:var(--w-wash);color:var(--w-ink)}
+.ph.ready{border-color:var(--pass);box-shadow:0 0 0 1px var(--pass)}
 
 /* ---------- tiles ---------- */
 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
@@ -249,31 +267,26 @@ td.lbl-c{font-family:var(--sans)}
 .ok-m{color:var(--pass-ink);font-weight:600}
 .no-m{color:var(--resid);font-weight:600}
 
-/* ---------- data strip ---------- */
+/* ---------- data table ---------- */
 .dpanel{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
 .splitbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
 .counts{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
 .cpill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
 .cpill b{font-family:var(--mono);font-weight:500;color:var(--ink)}
-.strip{display:grid;grid-auto-flow:column;grid-auto-columns:118px;gap:8px;overflow-x:auto;padding:4px 2px 10px}
-.scard{border:1px solid var(--line);border-radius:9px;padding:8px 9px;display:flex;flex-direction:column;gap:5px;background:var(--surface);cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s,opacity .2s;text-align:left;min-width:0}
-.scard:disabled{cursor:default}
-.scard .sh{display:flex;align-items:center;justify-content:space-between;gap:4px}
-.scard .sid{font-family:var(--mono);font-size:11px;color:var(--muted)}
-.scard .tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
-.scard .tag.tr{background:var(--w-wash);color:var(--w-ink)}
-.scard .tag.te{background:var(--b-wash);color:var(--b-ink)}
-.scard .feat{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:1px 6px;align-items:center;font-size:10px;color:var(--muted)}
-.scard .feat b{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--ink);text-align:right}
-.bar{height:4px;border-radius:2px;background:var(--grid);overflow:hidden}
-.bar i{display:block;height:100%;background:var(--axis)}
-.scard .ans{font-size:11px;font-weight:600;padding:2px 0;border-radius:5px;text-align:center}
-.ans.pass{background:var(--pass-wash);color:var(--pass-ink)}
-.ans.fail{background:var(--fail-wash);color:var(--fail-ink)}
-.scard .pred{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;min-height:15px}
-.scard.cur{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink);transform:translateY(-2px)}
-.scard.dim{opacity:.35}
-.scard.wrong{border-color:var(--resid);box-shadow:0 0 0 1px var(--resid)}
+.dwrap{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.dwrap table{font-size:13px}
+.dwrap thead th{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom:0;box-shadow:inset 0 -1px 0 var(--axis);font-size:12px;padding:8px 10px}
+.dwrap tbody tr{cursor:pointer}
+.dwrap tbody tr:hover td{background:var(--surface-2)}
+.dwrap tbody td{padding:5px 10px}
+.dwrap tbody tr.cur td{background:var(--w-wash);box-shadow:inset 0 1px 0 var(--w),inset 0 -1px 0 var(--w)}
+.dwrap tbody tr.wrong td{background:var(--crit-bg)}
+.tag{font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);display:inline-block}
+.tag.tr{background:var(--w-wash);color:var(--w-ink)}
+.tag.te{background:var(--b-wash);color:var(--b-ink)}
+.dwrap .pass{color:var(--pass-ink);font-weight:600}
+.dwrap .fail{color:var(--fail-ink);font-weight:600}
+.dwrap tbody tr.locked{cursor:default}
 
 /* ---------- inference ---------- */
 .infer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:14px 16px}
@@ -380,6 +393,11 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <span class="lockbadge live" id="lockBadge">가중치 학습 중</span>
       <div class="msg" id="msg" role="status"></div>
     </div>
+    <div class="progrow">
+      <div class="pbar" role="progressbar" aria-label="학습 진행"><i id="pbarFill"></i></div>
+      <span class="ptxt" id="progTxt">아직 시작하지 않았습니다</span>
+      <span class="readychip" id="readyChip">대기 중</span>
+    </div>
     <div class="controls">
       <div class="group">
         <button class="btn primary" id="bStep" type="button" title="순전파 → 비용 → 역전파 → 업데이트를 하나씩">한 단계 →</button>
@@ -404,21 +422,33 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         </select>
       </div>
       <div class="group">
-        <label class="glbl" for="archSel">은닉층</label>
-        <select class="btn" id="archSel">
-          <option value="3-3-2" selected>3개 (1층)</option>
-          <option value="3-2-2">2개 (1층)</option>
-          <option value="3-4-2">4개 (1층)</option>
-          <option value="3-3-3-2">3 + 3개 (2층)</option>
+        <label class="glbl" for="layerSel">은닉층</label>
+        <select class="btn" id="layerSel">
+          <option value="1" selected>1개 층</option>
+          <option value="2">2개 층</option>
+          <option value="3">3개 층</option>
+        </select>
+        <span class="units" id="unitWrap"></span>
+      </div>
+      <div class="group">
+        <label class="glbl" for="targetSel">목표 에폭</label>
+        <select class="btn" id="targetSel">
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200" selected>200</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+          <option value="0">무제한</option>
         </select>
       </div>
       <div class="group">
         <label class="glbl" for="speed">자동 속도</label>
         <select class="btn" id="speed">
-          <option value="0.8">느리게</option>
-          <option value="2.5" selected>보통</option>
-          <option value="8">빠르게</option>
-          <option value="40">매우 빠르게</option>
+          <option value="1">느리게</option>
+          <option value="12" selected>보통</option>
+          <option value="60">빠르게</option>
+          <option value="300">매우 빠르게</option>
+          <option value="1500">최고 속도</option>
         </select>
       </div>
       <label class="switch" for="shuffleOn"><input type="checkbox" id="shuffleOn" checked> 에폭마다 순서 섞기</label>
@@ -489,7 +519,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           <span class="no">0</span><h3>배치 선택</h3>
           <div class="body">
             <p id="s0txt">이번 업데이트에 쓸 학습 샘플을 고릅니다. 배치 크기가 1이면 한 명씩, 크면 여러 명을 묶어 넣습니다.</p>
-            <p class="cap">아래 <strong>학습 데이터</strong> 카드에서 지금 들어간 샘플이 진하게 표시됩니다.</p>
+            <p class="cap">아래 <strong>학습 데이터</strong> 표에서 지금 들어간 행이 강조됩니다.</p>
           </div>
         </article>
         <article class="step" data-s="1">
@@ -578,7 +608,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   <section class="block" id="blkData">
     <div class="sec-h">
       <h2>데이터 — 학습용과 평가용 나누기</h2>
-      <p>카드를 클릭하면 학습용과 평가용이 바뀝니다</p>
+      <p>행을 클릭하면 학습용과 평가용이 바뀝니다</p>
     </div>
     <div class="panel dpanel">
       <div class="splitbar">
@@ -592,7 +622,15 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <span class="spacer"></span>
         <div class="counts" id="counts"></div>
       </div>
-      <div class="strip" id="strip"></div>
+      <div class="dwrap">
+        <table id="dtbl">
+          <thead><tr>
+            <th>#</th><th>공부시간</th><th>집중도</th><th>식사량</th>
+            <th>정답</th><th>구분</th><th>모델 예측</th>
+          </tr></thead>
+          <tbody id="dbody"></tbody>
+        </table>
+      </div>
       <p class="tnote" style="padding:0">평가 데이터는 <strong>학습에 한 번도 쓰이지 않습니다.</strong> 시험 문제를 미리 보여주고 시험을 치면 점수가 부풀듯, 평가 데이터를 학습에 섞으면 성능이 실제보다 좋아 보입니다. 학습을 시작한 뒤 분할을 바꾸면 가중치가 초기화됩니다.</p>
     </div>
   </section>
@@ -668,7 +706,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     <div class="panel chart">
       <div class="chart-head">
         <div class="group">
-          <button class="btn primary" id="bLrRun" type="button">30 에폭 비교 실행</button>
+          <button class="btn primary" id="bLrRun" type="button">60 에폭 비교 실행</button>
           <button class="btn" id="bLrClear" type="button">지우기</button>
         </div>
         <span class="note">세로축 로그 눈금 · 현재 배치 크기·활성화 함수·초기 가중치를 그대로 사용합니다</span>
@@ -682,7 +720,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   <section class="notes">
     <div class="panel note-card">
       <h2>에폭 · 배치 · 업데이트</h2>
-      <p>학습 데이터가 <b id="n1">14</b>개, 배치 크기가 <b id="n2">1</b>이면 <strong>1 에폭 = <b id="n3">14</b>번의 가중치 업데이트</strong>입니다. 배치 크기를 키우면 한 에폭 안의 업데이트 횟수가 줄어들어 같은 에폭에서도 덜 움직입니다. 대신 여러 샘플의 경사를 평균내므로 방향이 덜 흔들립니다.</p>
+      <p>학습 데이터가 <b id="n1">36</b>개, 배치 크기가 <b id="n2">1</b>이면 <strong>1 에폭 = <b id="n3">36</b>번의 가중치 업데이트</strong>입니다. 배치 크기를 키우면 한 에폭 안의 업데이트 횟수가 줄어들어 같은 에폭에서도 덜 움직입니다. 대신 여러 샘플의 경사를 평균내므로 방향이 덜 흔들립니다.</p>
       <ul>
         <li><strong>배치 크기 1</strong> — 샘플 하나마다 갱신. 빠르게 움직이지만 손실 곡선이 지그재그입니다.</li>
         <li><strong>미니배치</strong> — 2~4개씩 평균. 실전에서 가장 많이 쓰는 방식입니다.</li>
@@ -738,19 +776,27 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ==================== 데이터 ==================== */
 /* [공부시간, 집중도, 식사량, 정답]  정답 0 = 합격, 1 = 불합격
-   기준선: 0.62·공부 + 0.52·집중 > 6.2 → 합격 (경계에서 최소 1.0 이상 떨어뜨렸습니다).
-   식사량은 합격·불합격 두 집단 모두 1~10을 한 번씩 갖도록 배치해 완전히 무관하게 만들었습니다.
+   기준선: 0.62·공부 + 0.52·집중 > 6.2 → 합격 (경계에서 최소 0.8 이상 떨어뜨렸습니다).
+   식사량은 합격 25명과 불합격 25명이 똑같은 값 분포를 갖도록 배치해 완전히 무관하게 만들었습니다.
    앞의 네 샘플 (9,4,3) (5,1,4) (10,5,1) (1,1,5)는 강의 슬라이드에 나온 예시입니다. */
 const DATA = [
-  [9,4,3,0],[5,1,4,1],[10,5,1,0],[1,1,5,1],[5,8,6,0],[2,4,1,1],[8,10,9,0],
-  [5,4,3,1],[10,9,5,0],[1,8,8,1],[7,6,10,0],[3,2,7,1],[4,10,7,0],[3,6,9,1],
-  [9,7,4,0],[7,1,10,1],[10,2,8,0],[1,2,2,1],[10,7,2,0],[5,3,6,1]
+  [9,4,3,0],[5,1,4,1],[10,5,1,0],[1,1,5,1],[8,7,6,0],
+  [2,6,9,1],[5,9,7,0],[4,4,2,1],[9,10,6,0],[1,9,7,1],
+  [10,8,1,0],[1,3,6,1],[6,7,10,0],[3,1,5,1],[10,2,10,0],
+  [6,3,2,1],[7,9,4,0],[7,1,1,1],[3,10,2,0],[2,4,4,1],
+  [8,5,5,0],[2,2,3,1],[7,6,8,0],[1,7,8,1],[9,6,2,0],
+  [4,2,6,1],[6,10,10,0],[3,3,4,1],[9,7,2,0],[1,5,10,1],
+  [8,4,8,0],[3,5,6,1],[10,6,6,0],[1,8,2,1],[8,8,9,0],
+  [1,6,8,1],[8,6,3,0],[5,3,10,1],[10,3,4,0],[3,2,9,1],
+  [7,8,4,0],[3,6,10,1],[10,4,9,0],[3,4,3,1],[4,10,5,0],
+  [5,2,1,1],[9,8,7,0],[2,5,8,1],[5,10,8,0],[2,3,7,1]
 ];
 const FEAT = ['공부시간','집중도','식사량'];
 const CLS  = ['합격','불합격'];
-const ALPHAS = [0.01,0.02,0.05,0.1,0.2,0.3,0.5,0.8,1,1.5,2,3,5,8,15,30];
+const ALPHAS = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];
 const STEP_NAMES = ['배치 선택','순전파 (Forward)','비용 계산','역전파 (Backward)','가중치 업데이트'];
-const ARCHS = { '3-3-2':[3,3,2], '3-2-2':[3,2,2], '3-4-2':[3,4,2], '3-3-3-2':[3,3,3,2] };
+const MAX_UNITS = 5, MAX_LAYERS = 3;
+const TARGETS = [50, 100, 200, 500, 1000, 0];   // 0 = 무제한
 
 const ACT = {
   sigmoid:{ name:'시그모이드', f:z=>1/(1+Math.exp(-z)), d:(z,a)=>a*(1-a), tex:'1/(1+e^-z)', lo:-6, hi:6, ylo:-0.1, yhi:1.1 },
@@ -761,10 +807,10 @@ const ACT = {
 /* ==================== 상태 ==================== */
 const S = {
   phase: 0,
-  arch: ARCHS['3-3-2'], archKey: '3-3-2',
+  hidden: [3], arch: [3,3,2],
   act: 'sigmoid', seed: 7,
   W: null, B: null, W0: null, B0: null,
-  ai: 8, batch: 1, shuffle: true, speed: 2.5,
+  ai: 3, batch: 1, shuffle: true, speed: 12, targetEp: 200,
   split: null,                 // 0 = 학습, 1 = 평가
   order: [], cursor: 0,
   epoch: 0, updates: 0, step: 0,
@@ -903,8 +949,79 @@ function autoSplit(ratio, seedShift){
     ids.slice(0, nTr).forEach(i => split[i] = 0);
   }
   S.split = split;
+  splitPreset = ratio;
 }
-let splitSeq = 0, splitRatio = 0.7;
+let splitSeq = 0, splitRatio = 0.7, splitPreset = 0.7;
+
+/* ==================== 은닉층 구성 ==================== */
+function applyHidden(){ S.arch = [3].concat(S.hidden, [2]); }
+function buildUnitControls(){
+  const host = $('unitWrap'); host.textContent = '';
+  S.hidden.forEach((n, i) => {
+    const w = document.createElement('span');
+    w.className = 'ustep';
+    w.innerHTML =
+      `<span class="ul">${i+1}층</span>
+       <button class="btn sq" type="button" data-u="${i}" data-d="-1" aria-label="${i+1}번째 은닉층 유닛 줄이기">−</button>
+       <b>${n}</b>
+       <button class="btn sq" type="button" data-u="${i}" data-d="1" aria-label="${i+1}번째 은닉층 유닛 늘리기">+</button>`;
+    host.appendChild(w);
+  });
+  host.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    if (S.phase !== 1 && S.phase !== 0){ flash('info', '평가·사용 단계에서는 구조를 바꿀 수 없습니다.'); return; }
+    const i = +b.dataset.u, d = +b.dataset.d, next = S.hidden[i] + d;
+    if (next < 1 || next > MAX_UNITS){
+      flash('info', `은닉층 유닛은 1~${MAX_UNITS}개까지 설정할 수 있습니다.`); return;
+    }
+    S.hidden[i] = next; applyHidden(); resetTraining(true);
+    flash('info', `은닉층 구성을 ${S.hidden.join('–')}로 바꾸고 가중치를 초기화했습니다.`);
+  }));
+  host.querySelectorAll('button').forEach(b => { b.disabled = S.phase > 1; });   /* renderPhase 에서 다시 확인합니다 */
+}
+
+/* ==================== 학습 진행 ==================== */
+/* 목표 에폭까지의 진행률과, 손실이 더 줄지 않는지(수렴)를 함께 봅니다. */
+function progress(){
+  const h = S.hist, T = S.targetEp;
+  const last = h.length ? h[h.length-1] : null;
+  const epPct = T ? Math.min(1, S.epoch / T) : 0;
+  let rel = null, converged = false;
+  const back = Math.min(h.length - 1, 15);
+  if (last && back >= 8){
+    const prev = h[h.length-1-back];
+    if (isFinite(prev.trLoss) && prev.trLoss > 1e-9)
+      rel = (prev.trLoss - last.trLoss) / prev.trLoss;
+    converged = last.trAcc >= 1 && rel != null && rel < 0.02;
+  }
+  const hitTarget = T > 0 && S.epoch >= T;
+  return { epPct, rel, converged, hitTarget, last,
+           ready: converged || hitTarget,
+           near: !!last && last.trAcc >= 1 && !converged };
+}
+function renderProgress(){
+  const P = progress(), T = S.targetEp, chip = $('readyChip'), bar = $('pbar') || document.querySelector('.pbar');
+  const pctDone = T ? P.epPct : (P.last && isFinite(P.last.trAcc) ? P.last.trAcc : 0);
+  $('pbarFill').style.width = (pctDone * 100).toFixed(1) + '%';
+  if (bar) bar.classList.toggle('done', P.ready);
+
+  if (!S.trained){
+    $('progTxt').textContent = T ? `에폭 0 / ${T}` : '에폭 0';
+    chip.className = 'readychip'; chip.textContent = '대기 중';
+    return;
+  }
+  const accTxt = P.last && isFinite(P.last.trAcc) ? ` · 학습 정확도 ${pct(P.last.trAcc)}` : '';
+  $('progTxt').textContent = (T ? `에폭 ${S.epoch} / ${T}` : `에폭 ${S.epoch}`) + accTxt;
+  if (P.hitTarget && !P.converged){
+    chip.className = 'readychip go'; chip.textContent = '목표 에폭 도달 — 평가로';
+  } else if (P.converged){
+    chip.className = 'readychip go'; chip.textContent = '손실이 거의 안 줄어듭니다 — 평가로';
+  } else if (P.near){
+    chip.className = 'readychip near'; chip.textContent = '정확도는 100% · 손실 더 줄이는 중';
+  } else {
+    chip.className = 'readychip work';
+    chip.textContent = P.rel != null && P.rel < 0.005 ? '거의 못 배우고 있습니다' : '학습 중';
+  }
+}
 
 /* ==================== 학습 흐름 ==================== */
 function newEpochOrder(){
@@ -925,7 +1042,7 @@ function resetTraining(keepSplit){
   if (!keepSplit){ autoSplit(splitRatio, splitSeq); }
   newEpochOrder();
   S.inspect = { l:1, i:0 };
-  buildNet(); buildWeights(); buildStrip();
+  buildNet(); buildWeights(); buildStrip(); buildUnitControls();
   recordHist();
   renderAll();
 }
@@ -967,7 +1084,13 @@ function advance(){
     S.cursor += S.cur.idxs.length;
     S.trained = true;
     S.testRes = null; S.testCursor = 0;
-    if (S.cursor >= S.order.length){ S.epoch++; recordHist(); newEpochOrder(); }
+    if (S.cursor >= S.order.length){
+      S.epoch++; recordHist(); newEpochOrder();
+      if (S.targetEp > 0 && S.epoch >= S.targetEp && S.running){
+        stopRun();
+        flash('ok', `목표 ${S.targetEp} 에폭에 도달했습니다. 위 “평가 Test”로 넘어갈 수 있습니다.`, true);
+      }
+    }
     S.step = 0;
     bndDirty = true;
   }
@@ -979,18 +1102,24 @@ function runEpoch(){
   while (S.epoch < target && guard++ < 600){ if (!advance()) return false; }
   return true;
 }
-function stopRun(){ S.running = false; if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0; $('bRun').textContent = '▶ 자동 학습'; }
+function stopRun(){
+  const was = S.running;
+  S.running = false; if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0;
+  $('bRun').textContent = '▶ 자동 학습';
+  if (was) { bndDirty = true; setTimeout(renderAll, 0); }
+}
 function startRun(){
   if (S.phase !== 1){ flash('info', '학습 단계에서만 자동 학습이 가능합니다.'); return; }
   S.running = true; S.acc = 0; $('bRun').textContent = '⏸ 멈춤';
-  let last = performance.now();
+  let last = performance.now(), lastPaint = 0;
   const tick = now => {
     if (!S.running) return;
     const dt = Math.min(0.1, (now - last)/1000); last = now;
     S.acc += dt * S.speed * 5;
     let n = 0;
-    while (S.acc >= 1 && n < 400){ S.acc -= 1; if (!advance()){ stopRun(); break; } n++; }
-    if (n) renderAll();
+    while (S.acc >= 1 && n < 3000){ S.acc -= 1; if (!advance()){ stopRun(); break; } n++; }
+    /* 빠른 속도에서는 매 프레임 전체를 다시 그리지 않습니다 */
+    if (n && now - lastPaint > 70){ lastPaint = now; renderAll(); }
     if (S.running) S.raf = requestAnimationFrame(tick);
   };
   S.raf = requestAnimationFrame(tick);
@@ -1221,23 +1350,19 @@ function paintCell(el, v, prev, bump, frozen){
   if (bump) setTimeout(() => el.classList.remove('bump'), 420);
 }
 
-/* ==================== 데이터 스트립 ==================== */
+/* ==================== 데이터 표 ==================== */
 function buildStrip(){
-  const host = $('strip'); host.textContent = '';
+  const tb = $('dbody'); tb.textContent = '';
   DATA.forEach((s, i) => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'scard'; b.id = 'sc-' + i;
-    b.innerHTML =
-      `<span class="sh"><span class="sid">#${i+1}</span><span class="tag"></span></span>
-       <span class="feat">
-         <span>공부</span><span class="bar"><i style="width:${s[0]*10}%"></i></span><b>${s[0]}</b>
-         <span>집중</span><span class="bar"><i style="width:${s[1]*10}%"></i></span><b>${s[1]}</b>
-         <span>식사</span><span class="bar"><i style="width:${s[2]*10}%"></i></span><b>${s[2]}</b>
-       </span>
-       <span class="ans ${s[3] === 0 ? 'pass' : 'fail'}">${CLS[s[3]]}</span>
-       <span class="pred"></span>`;
-    b.addEventListener('click', () => toggleSplit(i));
-    host.appendChild(b);
+    const tr = document.createElement('tr');
+    tr.id = 'dr-' + i; tr.dataset.i = i;
+    tr.innerHTML =
+      `<td>${i+1}</td><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td>
+       <td class="lbl-c ${s[3] === 0 ? 'pass' : 'fail'}">${CLS[s[3]]}</td>
+       <td class="lbl-c"><span class="tag"></span></td>
+       <td class="lbl-c pr">–</td>`;
+    tr.addEventListener('click', () => toggleSplit(i));
+    tb.appendChild(tr);
   });
 }
 function toggleSplit(i){
@@ -1245,7 +1370,9 @@ function toggleSplit(i){
   const next = S.split[i] === 0 ? 1 : 0;
   const after = S.split.slice(); after[i] = next;
   if (!after.some(v => v === 0)){ flash('warn', '학습 데이터가 하나도 없게 됩니다.'); return; }
+  if (!after.some(v => v === 1)){ flash('warn', '평가 데이터가 하나도 없게 됩니다.'); return; }
   S.split = after;
+  splitPreset = null;
   if (S.trained){
     flash('warn', '데이터 분할이 바뀌어 가중치를 초기화했습니다.');
     resetTraining(true);
@@ -1253,34 +1380,45 @@ function toggleSplit(i){
 }
 function renderStrip(){
   const curIdx = new Set(S.phase === 1 && S.cur && S.step > 0 ? S.cur.idxs : []);
-  const focusIdx = (() => { const c = currentSample(); return c && c.idx != null ? c.idx : -1; })();
+  const cs = currentSample();
+  const focusIdx = cs && cs.idx != null ? cs.idx : -1;
   const testMap = new Map((S.testRes || []).map(r => [r.i, r]));
   DATA.forEach((s, i) => {
-    const el = $('sc-' + i); if (!el) return;
+    const tr = $('dr-' + i); if (!tr) return;
     const isTr = S.split[i] === 0;
-    const tag = el.querySelector('.tag');
+    const tag = tr.querySelector('.tag');
     tag.textContent = isTr ? '학습' : '평가';
     tag.className = 'tag ' + (isTr ? 'tr' : 'te');
-    el.classList.toggle('cur', curIdx.has(i) || i === focusIdx);
-    el.classList.toggle('dim', S.phase === 1 && isTr && S.cur && S.step > 0 && !curIdx.has(i));
-    const pr = el.querySelector('.pred');
-    const tr = testMap.get(i);
-    if (tr){
-      pr.textContent = `${CLS[tr.pred]} ${pct(tr.pred === 0 ? tr.yh[0] : tr.yh[1])}`;
-      el.classList.toggle('wrong', !tr.ok);
+    tr.classList.toggle('cur', curIdx.has(i) || i === focusIdx);
+    tr.classList.toggle('locked', S.phase > 1);
+    const pr = tr.querySelector('.pr');
+    const t = testMap.get(i);
+    if (t){
+      pr.textContent = `${CLS[t.pred]} ${pct(t.pred === 0 ? t.yh[0] : t.yh[1])}`;
+      pr.className = 'lbl-c pr ' + (t.pred === 0 ? 'pass' : 'fail');
+      tr.classList.toggle('wrong', !t.ok);
     } else if (S.phase === 1 && curIdx.has(i) && S.step >= 1 && S.cur){
-      const p = S.cur.per.find(x => x.i === i);
-      pr.textContent = p ? `ŷ ${fmt(p.yh[0], 2)} / ${fmt(p.yh[1], 2)}` : '';
-      el.classList.remove('wrong');
-    } else { pr.textContent = ''; el.classList.remove('wrong'); }
-    el.disabled = S.phase > 1;
+      const q = S.cur.per.find(x => x.i === i);
+      pr.textContent = q ? `합격 ${fmt(q.yh[0], 2)}` : '–';
+      pr.className = 'lbl-c pr';
+      tr.classList.remove('wrong');
+    } else { pr.textContent = '–'; pr.className = 'lbl-c pr'; tr.classList.remove('wrong'); }
   });
+  /* 손으로 진행할 때만 현재 행을 보이게 따라갑니다 */
+  if (!S.running && focusIdx >= 0){
+    const el = $('dr-' + focusIdx);
+    if (el && el !== lastScrolled){ lastScrolled = el; el.scrollIntoView({ block:'nearest' }); }
+  }
   const tr = trainIdx(), te = testIdx();
   const cnt = (ids, k) => ids.filter(i => DATA[i][3] === k).length;
   $('counts').innerHTML =
     `<span class="cpill"><i class="sw" style="background:var(--w)"></i>학습 <b>${tr.length}</b>개 · 합격 ${cnt(tr,0)} / 불합격 ${cnt(tr,1)}</span>
      <span class="cpill"><i class="sw" style="background:var(--b)"></i>평가 <b>${te.length}</b>개 · 합격 ${cnt(te,0)} / 불합격 ${cnt(te,1)}</span>`;
+  document.querySelectorAll('[data-split]').forEach(b => {
+    b.classList.toggle('on', splitPreset != null && Math.abs(+b.dataset.split - splitPreset) < 1e-9);
+  });
 }
+let lastScrolled = null;
 
 /* ==================== 단계 설명 ==================== */
 function renderSteps(){
@@ -1622,12 +1760,12 @@ function verdict(loss){
   return '내려가지만 아직 멀었음';
 }
 function runLrExperiment(){
-  const epochs = 30, tr = trainIdx();
+  const epochs = 60, tr = trainIdx();
   if (!tr.length){ flash('warn', '학습 데이터가 없습니다.'); return; }
   const defs = [
-    { lr: 0.05, name: '작은 학습률', color: cssVar('--muted'), dash: [2,3] },
-    { lr: 1,    name: '보통 학습률', color: cssVar('--w') },
-    { lr: 30,   name: '큰 학습률',   color: cssVar('--resid'), dash: [6,4] }
+    { lr: 0.001, name: '작은 학습률', color: cssVar('--muted'), dash: [2,3] },
+    { lr: 0.05,  name: '보통 학습률', color: cssVar('--w') },
+    { lr: 50,    name: '큰 학습률',   color: cssVar('--resid'), dash: [6,4] }
   ];
   const bs = batchSize();
   const series = defs.map(d => {
@@ -1713,7 +1851,7 @@ function renderInfer(){
 
 /* ==================== 단계(phase) ==================== */
 function setPhase(p){
-  if (p === 1 && !trainIdx().length){ flash('warn', '학습 데이터가 없습니다. 카드를 눌러 나눠 주세요.'); return; }
+  if (p === 1 && !trainIdx().length){ flash('warn', '학습 데이터가 없습니다. 표에서 행을 눌러 나눠 주세요.'); return; }
   if (p >= 2 && !S.trained){ flash('warn', '먼저 학습을 진행해 주세요. (한 단계 → 또는 ▶ 자동 학습)'); return; }
   if (p >= 3 && !S.testRes){ flash('warn', '먼저 평가 데이터로 채점해 주세요.'); return; }
   if (p < 2 && S.phase >= 2){ flash('info', '학습으로 돌아갑니다. 평가 결과를 보고 모델을 고치면 평가 점수를 믿기 어려워집니다 — 실무에서는 이럴 때 검증 데이터를 씁니다.'); }
@@ -1730,14 +1868,18 @@ function renderPhase(){
     el.classList.toggle('on', p === S.phase);
     el.classList.toggle('done', p < S.phase);
     el.disabled = (p === 1 && !trainIdx().length) || (p >= 2 && !S.trained) || (p >= 3 && !S.testRes);
+    if (p === 2) el.classList.toggle('ready', S.phase === 1 && S.trained && progress().ready);
   });
   const frozen = S.phase >= 2;
   const lb = $('lockBadge');
   lb.className = 'lockbadge ' + (frozen ? 'frozen' : 'live');
   lb.textContent = frozen ? '🔒 가중치 고정됨' : '가중치 학습 중';
   ['bStep','bBatch','bEpoch','bRun','bReset'].forEach(id => { $(id).disabled = S.phase !== 1; });
-  $('batchSel').disabled = $('archSel').disabled = $('actSel').disabled = S.phase !== 1;
-  $('aUp').disabled = $('aDown').disabled = S.phase !== 1;
+  /* 설정은 평가 전까지(단계 0~1) 바꿀 수 있습니다 */
+  const cfgLocked = S.phase > 1;
+  $('batchSel').disabled = $('layerSel').disabled = $('actSel').disabled = $('targetSel').disabled = cfgLocked;
+  $('unitWrap').querySelectorAll('button').forEach(b => { b.disabled = cfgLocked; });
+  $('aUp').disabled = $('aDown').disabled = cfgLocked;
   $('bTestAll').disabled = $('bTestStep').disabled = $('bTestReset').disabled = S.phase < 2;
   ['inS','inF','inM'].forEach(id => { $(id).disabled = S.phase < 3; });
   $('blkTest').classList.toggle('off', S.phase < 2);
@@ -1787,6 +1929,7 @@ function renderAll(){
     ? `${cs.tag}${cs.idx != null ? ' #' + (cs.idx+1) : ''} — ${cs.s.slice(0,3).map((v,i) => FEAT[i] + ' ' + v).join(' · ')}${cs.label != null ? ` · 정답 <b>${CLS[cs.label]}</b>` : ' · 정답 없음'}`
     : '<span style="color:var(--muted)">진행하면 샘플이 여기에 표시됩니다</span>';
 
+  renderProgress();
   paintNet(); renderWeights(); renderSteps(); renderBatchTable(); renderStrip();
   renderInspect(); renderTest(); renderInfer();
   drawLoss(); drawAct();
@@ -1812,10 +1955,18 @@ $('showTest').addEventListener('change', e => {
   drawLoss();
 });
 $('actSel').addEventListener('change', e => { S.act = e.target.value; resetTraining(true); flash('info', `활성화 함수를 ${ACT[S.act].name}로 바꾸고 가중치를 초기화했습니다.`); });
-$('archSel').addEventListener('change', e => {
-  S.archKey = e.target.value; S.arch = ARCHS[S.archKey].slice();
-  resetTraining(true);
-  flash('info', `은닉층 구성을 ${S.arch.join('–')}로 바꾸고 가중치를 초기화했습니다.`);
+$('layerSel').addEventListener('change', e => {
+  const n = Math.max(1, Math.min(MAX_LAYERS, +e.target.value));
+  const cur = S.hidden.slice();
+  while (cur.length < n) cur.push(cur[cur.length-1] || 3);
+  cur.length = n;
+  S.hidden = cur; applyHidden(); resetTraining(true);
+  flash('info', `은닉층을 ${n}개 층(${S.hidden.join('–')})으로 바꾸고 가중치를 초기화했습니다.`);
+});
+$('targetSel').addEventListener('change', e => {
+  S.targetEp = +e.target.value;
+  flash('info', S.targetEp ? `목표를 ${S.targetEp} 에폭으로 잡았습니다.` : '목표 에폭 없이 계속 학습합니다.');
+  renderAll();
 });
 document.querySelectorAll('[data-split]').forEach(b => b.addEventListener('click', () => {
   if (S.phase > 1){ flash('info', '평가·사용 단계에서는 다시 나눌 수 없습니다.'); return; }
@@ -1852,10 +2003,14 @@ setupCanvas('cvBnd', 'wrapBnd', 210);
 setupCanvas('cvAct', 'wrapAct', 190);
 setupCanvas('cvLr', 'wrapLr', 220);
 
+applyHidden();
+$('layerSel').value = String(S.hidden.length);
+$('targetSel').value = String(S.targetEp);
+$('speed').value = String(S.speed);
 autoSplit(splitRatio, splitSeq);
 resetTraining(true);
 drawLr();
-flash('info', '① 아래에서 데이터를 나눈 뒤 ② “학습 Training”을 눌러 시작하세요.', true);
+flash('info', '① 아래 표에서 데이터를 나눈 뒤 ② “학습 Training”을 눌러 시작하세요.', true);
 
 let lastW = 0;
 new ResizeObserver(() => {
