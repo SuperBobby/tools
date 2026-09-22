@@ -88,8 +88,8 @@ button,select,input{font:inherit;color:inherit}
 .m i{font-style:italic}
 .m .up{font-style:normal}
 .m sub,.m sup{font-size:.68em;line-height:0}
-.m .w,.wv{color:var(--w-ink)}
-.m .b,.bv{color:var(--b-ink)}
+.m .w{color:var(--w-ink)}
+.m .b{color:var(--b-ink)}
 .m .d{color:var(--resid)}
 .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em;font-size:.9em;line-height:1.15}
 .frac>span:first-child{border-bottom:1px solid currentColor;padding:0 .2em}
@@ -98,7 +98,6 @@ button,select,input{font:inherit;color:inherit}
 .sum .sg{font-size:1.45em;line-height:1}
 .sum small{font-size:.6em;font-style:italic}
 .val{font-family:var(--mono);font-size:.84em;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--surface-2);padding:1px 6px;border-radius:4px;white-space:nowrap}
-.val.pending{color:var(--muted)}
 
 /* ---------- tabs ---------- */
 .wrap>.tabsec{order:99}
@@ -204,10 +203,6 @@ select.btn{padding-right:28px}
 .sec-h h2{font-size:18px}
 .sec-h p{font-size:13px;color:var(--muted)}
 .block{display:flex;flex-direction:column}
-.block.off{opacity:.42}
-.block.off .panel{filter:saturate(.4)}
-.gate{font-size:13px;color:var(--warn-ink);background:var(--warn-bg);border-radius:6px;padding:4px 10px;display:none}
-.block.off .gate{display:inline-block}
 
 /* ---------- network svg ---------- */
 .bench{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:stretch}
@@ -427,7 +422,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <div class="msg" id="msg" role="status"></div>
     </div>
     <div class="progrow">
-      <div class="pbar" role="progressbar" aria-label="학습 진행"><i id="pbarFill"></i></div>
+      <div class="pbar" id="pbar" role="progressbar" aria-label="학습 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pbarFill"></i></div>
       <span class="ptxt" id="progTxt">아직 시작하지 않았습니다</span>
       <span class="readychip" id="readyChip">대기 중</span>
     </div>
@@ -683,7 +678,6 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   <section class="block tabsec t2" id="blkTest" style="--o2:1">
     <div class="sec-h">
       <h2>평가 (Test) — 가중치를 고정하고 처음 보는 데이터로</h2>
-      <p><span class="gate">학습을 한 번이라도 진행한 뒤에 쓸 수 있습니다</span></p>
     </div>
     <div class="panel">
       <div class="controls" style="border-top:0">
@@ -720,14 +714,13 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           </table>
         </div>
       </div>
-      <p class="tnote">평가 중에는 <span class="m"><i class="w">w</i></span>와 <span class="m"><i class="b">b</i></span>가 <strong>한 글자도 바뀌지 않습니다.</strong> 순전파만 계산하고 역전파와 가중치 갱신은 건너뜁니다. 위 <strong>가중치와 편향</strong> 표의 Δ가 모두 멈춘 것을 확인해 보세요.</p>
+      <p class="tnote">평가 중에는 <span class="m"><i class="w">w</i></span>와 <span class="m"><i class="b">b</i></span>가 <strong>조금도 바뀌지 않습니다.</strong> 순전파만 계산하고 역전파와 가중치 갱신은 건너뜁니다. 위 <strong>가중치와 편향</strong> 표의 Δ가 모두 멈춘 것을 확인해 보세요.</p>
     </div>
   </section>
 
   <section class="block tabsec t3" id="blkInfer" style="--o3:1">
     <div class="sec-h">
       <h2>실제 사용 (Inference) — 정답이 없는 새 입력</h2>
-      <p><span class="gate">평가를 마친 뒤에 쓸 수 있습니다</span></p>
     </div>
     <div class="panel">
       <div class="infer">
@@ -752,7 +745,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   </section>
 
   <section class="block tabsec t1" id="secLr" style="--o1:6">
-    <div class="sec-h"><h2>학습률(learning rate) <span class="m"><i>α</i></span>은 보폭입니다</h2><p>같은 초기 가중치로 세 가지 학습률을 각각 돌려 비교합니다</p></div>
+    <div class="sec-h"><h2>학습률(learning rate) <span class="m"><i>α</i></span>는 보폭입니다</h2><p>같은 초기 가중치로 세 가지 학습률을 각각 돌려 비교합니다</p></div>
     <div class="panel chart">
       <div class="chart-head">
         <div class="group">
@@ -866,8 +859,7 @@ const FEAT = ['공부시간','집중도','식사량'];
 const CLS  = ['합격','불합격'];
 const ALPHAS = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];
 const STEP_NAMES = ['미니배치 선택','순전파 (forward)','손실 계산','역전파 (backprop)','가중치 갱신 (경사 하강법)'];
-const MAX_UNITS = 5, MAX_LAYERS = 3;
-const TARGETS = [30, 50, 100, 200, 500, 0];   // 0 = 무제한
+const MAX_UNITS = 5, MAX_LAYERS = 3;   /* 목표 에폭 선택지는 위 HTML 의 targetSel 에 있습니다 */
 
 const ACT = {
   sigmoid:{ name:'시그모이드', f:z=>1/(1+Math.exp(-z)), d:(z,a)=>a*(1-a), tex:'1/(1+e^-z)', lo:-6, hi:6, ylo:-0.1, yhi:1.1 },
@@ -1054,7 +1046,7 @@ function buildUnitControls(){
       flash('info', `은닉층 유닛은 1~${MAX_UNITS}개까지 설정할 수 있습니다.`); return;
     }
     S.hidden[i] = next; applyHidden(); resetTraining(true);
-    flash('info', `은닉층 구성을 ${S.hidden.join('–')}로 바꾸고 가중치를 초기화했습니다.`);
+    flash('info', `은닉층을 ${S.hidden.join('–')} 구성으로 바꾸고 가중치를 초기화했습니다.`);
   }));
   host.querySelectorAll('button').forEach(b => { b.disabled = S.phase > 1; });   /* renderPhase 에서 다시 확인합니다 */
 }
@@ -1079,10 +1071,11 @@ function progress(){
            near: !!last && last.trAcc >= 1 && !converged };
 }
 function renderProgress(){
-  const P = progress(), T = S.targetEp, chip = $('readyChip'), bar = $('pbar') || document.querySelector('.pbar');
+  const P = progress(), T = S.targetEp, chip = $('readyChip'), bar = $('pbar');
   const pctDone = T ? P.epPct : (P.last && isFinite(P.last.trAcc) ? P.last.trAcc : 0);
   $('pbarFill').style.width = (pctDone * 100).toFixed(1) + '%';
-  if (bar) bar.classList.toggle('done', P.ready);
+  bar.classList.toggle('done', P.ready);
+  bar.setAttribute('aria-valuenow', Math.round(pctDone * 100));
 
   if (!S.trained){
     $('progTxt').textContent = T ? `에폭 0 / ${T}` : '에폭 0';
@@ -1149,7 +1142,7 @@ function recordHist(){
     /* 발산까지는 아니지만 학습이 거꾸로 가는 경우 — 대개 학습률이 너무 큽니다 */
     const first = S.hist[0].trLoss;
     if (isFinite(tr.loss) && tr.loss > Math.max(1.2, first * 1.2))
-      flash('warn', `손실이 처음(${fmt(first,2)})보다 커졌습니다 — α = ${lr()}가 너무 큽니다. 학습률을 줄이고 ⟲ 가중치 초기화를 눌러 보세요.`);
+      flash('warn', `손실이 처음(${fmt(first,2)})보다 커졌습니다 — 학습률 α = ${lr()} — 너무 큽니다. 학습률을 줄이고 ⟲ 가중치 초기화를 눌러 보세요.`);
   }
 }
 /* 한 단계 진행. 반환값이 false면 더 진행할 수 없습니다. */
@@ -1232,7 +1225,7 @@ function buildNet(){
     NET.y.push(ys);
     NET.by.push(bottom + 68);
   }
-  const gEdge = mk('g', {}), gBias = mk('g', {}), gNode = mk('g', {}), gText = mk('g', {});
+  const gEdge = mk('g', {}), gBias = mk('g', { 'pointer-events':'none' }), gNode = mk('g', {}), gText = mk('g', {});
   svg.append(gEdge, gBias, gNode, gText);
 
   /* 연결선 */
@@ -1250,7 +1243,7 @@ function buildNet(){
     NET.edges.push(layer);
     /* 편향 */
     const bnode = mk('g', {});
-    const bc = mk('circle', { class:'node', cx:NET.x[l]+34, cy:NET.by[l], r:14, fill:'var(--b-wash)', stroke:'var(--b)' });
+    const bc = mk('circle', { class:'node bias', cx:NET.x[l]+34, cy:NET.by[l], r:14, fill:'var(--b-wash)', stroke:'var(--b)' });
     const bt = mk('text', { x:NET.x[l]+34, y:NET.by[l]+4, 'text-anchor':'middle' }); bt.textContent = '1';
     const bl = mk('text', { class:'small', x:NET.x[l]+34, y:NET.by[l]+30, 'text-anchor':'middle' }); bl.textContent = 'bias';
     bnode.append(bc, bt, bl); gBias.appendChild(bnode); NET.biasNodes.push(bnode);
@@ -1534,7 +1527,7 @@ function renderSteps(){
   const c = S.cur, p = c ? c.per[Math.min(S.focus, c.per.length-1)] : null;
   const bs = batchSize();
   $('s0txt').innerHTML = S.phase === 1 && c
-    ? `배치 크기 <b>${c.idxs.length}</b> — 샘플 ${c.idxs.map(i => '#' + (i+1)).join(', ')} 를 넣습니다. (에폭 ${S.epoch+1} 안에서 ${Math.floor(S.cursor/Math.max(1,bs))+1}번째 배치)`
+    ? `배치 크기 <b>${c.idxs.length}</b> — 넣는 샘플 ${c.idxs.map(i => '#' + (i+1)).join(', ')} (에폭 ${S.epoch+1} 안에서 ${Math.floor(S.cursor/Math.max(1,bs))+1}번째 배치)`
     : `이번 갱신에 쓸 학습 샘플을 고릅니다. 배치 크기가 ${bs}이면 ${bs === 1 ? '샘플 하나씩' : `샘플 ${bs}개씩 묶어`} 넣습니다.`;
 
   if (p && S.step >= 1){
@@ -1959,7 +1952,7 @@ function renderInfer(){
   if (origin){
     origin.innerHTML = hit < 0
       ? '이 세 값은 학습 데이터에도 평가 데이터에도 없는 <strong>새로운 입력</strong>입니다. 정답(label)이 없으니 맞았는지 틀렸는지 알 수 없고, 모델은 배운 가중치로 순전파만 계산합니다.'
-      : `이 값은 마침 ${S.split[hit] === 0 ? '<strong>학습</strong>' : '<strong>평가</strong>'} 데이터 #${hit+1}과 같습니다 (정답 ${CLS[DATA[hit][3]]}). 실제 사용에서는 이렇게 정답을 아는 경우가 없습니다 — 슬라이더를 움직여 데이터에 없는 값을 넣어 보세요.`;
+      : `이 값은 마침 ${S.split[hit] === 0 ? '<strong>학습</strong>' : '<strong>평가</strong>'} 데이터 ${hit+1}번 샘플과 같습니다 (정답 ${CLS[DATA[hit][3]]}). 실제 사용에서는 이렇게 정답을 아는 경우가 없습니다 — 슬라이더를 움직여 데이터에 없는 값을 넣어 보세요.`;
   }
   const yh = forward(S.W, S.B, nx(s)).A[S.W.length];
   const pred = yh[0] >= yh[1] ? 0 : 1;
@@ -2090,7 +2083,7 @@ $('batchSel').addEventListener('change', e => {
       if (Math.abs(Math.log(ALPHAS[i]/want)) < Math.abs(Math.log(ALPHAS[best]/want))) best = i;
     if (best !== S.ai){
       const from = lr(); S.ai = best;
-      flash('info', `배치를 ${before} → ${after}로 바꿨습니다. 에폭당 갱신 횟수가 ${(after/before).toFixed(1)}배 줄어들어 학습률도 α ${from} → ${lr()}로 맞췄습니다. 직접 바꿔도 됩니다.`);
+      flash('info', `배치 크기 ${before} → ${after}. 에폭당 갱신 횟수가 ${(after/before).toFixed(1)}배 줄어들어 학습률도 함께 조정했습니다 (α ${from} → ${lr()}). 직접 바꿔도 됩니다.`);
     }
   }
   S.step = 0; S.cur = null; newEpochOrder(); renderAll();
@@ -2110,11 +2103,11 @@ $('layerSel').addEventListener('change', e => {
   while (cur.length < n) cur.push(cur[cur.length-1] || 3);
   cur.length = n;
   S.hidden = cur; applyHidden(); resetTraining(true);
-  flash('info', `은닉층을 ${n}개 층(${S.hidden.join('–')})으로 바꾸고 가중치를 초기화했습니다.`);
+  flash('info', `은닉층을 ${n}개 층(${S.hidden.join('–')}) 구성으로 바꾸고 가중치를 초기화했습니다.`);
 });
 $('targetSel').addEventListener('change', e => {
   S.targetEp = +e.target.value;
-  flash('info', S.targetEp ? `목표를 ${S.targetEp} 에폭으로 잡았습니다.` : '목표 에폭 없이 계속 학습합니다.');
+  flash('info', S.targetEp ? `목표 에폭을 ${S.targetEp} 회로 잡았습니다.` : '목표 에폭 없이 계속 학습합니다.');
   renderAll();
 });
 document.querySelectorAll('[data-split]').forEach(b => b.addEventListener('click', () => {
@@ -2122,7 +2115,7 @@ document.querySelectorAll('[data-split]').forEach(b => b.addEventListener('click
   splitRatio = +b.dataset.split; splitSeq = 0; autoSplit(splitRatio, splitSeq);
   const had = S.trained;
   resetTraining(true);
-  flash('info', `학습 : 평가 = ${Math.round(splitRatio*10)} : ${10-Math.round(splitRatio*10)} 로 나눴습니다.`
+  flash('info', `학습 : 평가 = ${Math.round(splitRatio*10)} : ${10-Math.round(splitRatio*10)} 비율로 나눴습니다.`
     + (had ? ' 분할이 바뀌어 가중치를 초기화했습니다.' : ''));
 }));
 $('bShuffleSplit').addEventListener('click', () => {
