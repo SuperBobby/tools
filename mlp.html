@@ -370,6 +370,39 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   .rail{grid-template-columns:minmax(0,1fr)}
   .spacer{display:none}
 }
+/* ---------- 고정 조작 박스 ---------- */
+.floatctl{
+  position:fixed;right:16px;bottom:16px;z-index:60;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 8px 28px rgba(20,27,24,.16);
+  padding:10px 12px;min-width:236px;max-width:calc(100vw - 32px);
+  display:none;flex-direction:column;gap:8px;
+}
+.floatctl.show{display:flex}
+.floatctl .fhead{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--ink-2)}
+.floatctl .fhead b{font-family:var(--mono);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.floatctl .stepper span{width:20px;height:20px;font-size:10px}
+.floatctl .pbar{height:5px;flex:none}
+.floatctl .fbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.floatctl .btn{padding:6px 8px;font-size:13px;justify-content:center}
+.floatctl .ffoot{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);
+  font-family:var(--mono);font-variant-numeric:tabular-nums}
+.floatctl .fbody{display:flex;flex-direction:column;gap:8px}
+.floatctl.mini{min-width:0;padding:7px 10px}
+.floatctl.mini .fbody{display:none}
+.fmin{width:22px;height:22px;flex:none;border:1px solid var(--line);background:var(--surface-2);
+  border-radius:6px;font-size:14px;line-height:1;cursor:pointer;color:var(--ink-2);display:grid;place-items:center}
+.fmin:hover{background:var(--surface)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .floatctl{box-shadow:0 8px 28px rgba(0,0,0,.55)}
+}
+:root[data-theme="dark"] .floatctl{box-shadow:0 8px 28px rgba(0,0,0,.55)}
+@media (max-width:720px){
+  .floatctl{left:12px;right:12px;bottom:12px;min-width:0;padding:9px 11px}
+  .floatctl .fbtns{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .floatctl .btn{padding:6px 4px;font-size:12px}
+}
+
 @media (prefers-reduced-motion: reduce){
   *{transition:none!important;animation:none!important}
 }
@@ -426,7 +459,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <span class="ptxt" id="progTxt">아직 시작하지 않았습니다</span>
       <span class="readychip" id="readyChip">대기 중</span>
     </div>
-    <div class="controls">
+    <div class="controls" id="mainCtl">
       <div class="group">
         <button class="btn primary" id="bStep" type="button" title="순전파 → 손실 → 역전파 → 갱신을 하나씩">한 단계 →</button>
         <button class="btn" id="bBatch" type="button" title="배치 하나를 끝까지 처리합니다">1 배치 ⇥</button>
@@ -832,6 +865,27 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   </section>
 
 </div>
+
+<!-- 화면 아래를 보는 동안에도 학습을 진행할 수 있는 고정 조작 박스 -->
+<aside class="floatctl" id="floatCtl" aria-label="학습 진행 조작">
+  <div class="fhead">
+    <span>에폭 <b id="fEpochN">0</b></span>
+    <div class="stepper" id="fStepper" aria-label="현재 단계">
+      <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+    </div>
+    <button class="fmin" id="fMin" type="button" aria-label="조작 박스 접기" title="접기">−</button>
+  </div>
+  <div class="fbody">
+    <div class="pbar" id="fPbar"><i id="fPbarFill"></i></div>
+    <div class="fbtns">
+      <button class="btn primary" id="fStep" type="button">한 단계 →</button>
+      <button class="btn" id="fBatch" type="button">1 배치</button>
+      <button class="btn" id="fEpoch" type="button">1 에폭</button>
+      <button class="btn" id="fRun" type="button">▶ 자동</button>
+    </div>
+    <div class="ffoot"><span id="fAcc">–</span><span id="fLoss">–</span></div>
+  </div>
+</aside>
 <script>
 (() => {
 'use strict';
@@ -879,7 +933,7 @@ const S = {
   epoch: 0, updates: 0, step: 0,
   cur: null, focus: 0,
   hist: [], trained: false,
-  running: false, raf: 0, acc: 0, diverged: false,
+  running: false, raf: 0, acc: 0, diverged: false, runStopAt: 0,
   showTest: false,
   testRes: null, testCursor: 0,
   inspect: { l:1, i:0 },
@@ -1163,12 +1217,12 @@ function advance(){
     S.testRes = null; S.testCursor = 0;
     if (S.cursor >= S.order.length){
       S.epoch++; recordHist(); newEpochOrder();
-      if (S.targetEp > 0 && S.epoch >= S.targetEp && S.running){
+      if (S.running && S.runStopAt > 0 && S.epoch >= S.runStopAt){
         stopRun();
         const P = progress();
         flash('ok', P.rel != null && P.rel > 0.08
-          ? `목표 ${S.targetEp} 에폭에 도달했습니다. 손실이 아직 줄고 있으니 더 돌려도 좋고, 이대로 “평가 Test”로 넘어가도 됩니다.`
-          : `목표 ${S.targetEp} 에폭에 도달했고 손실도 거의 평평해졌습니다. 위 “평가 Test”로 넘어가세요.`, true);
+          ? `${S.epoch} 에폭까지 돌렸습니다. 손실이 아직 줄고 있으니 더 돌려도 좋고, 이대로 “평가 Test”로 넘어가도 됩니다.`
+          : `${S.epoch} 에폭까지 돌렸고 손실도 거의 평평해졌습니다. 위 “평가 Test”로 넘어가세요.`, true);
       }
     }
     S.step = 0;
@@ -1182,15 +1236,25 @@ function runEpoch(){
   while (S.epoch < target && guard++ < 600){ if (!advance()) return false; }
   return true;
 }
+function setRunLabel(on){
+  $('bRun').textContent = on ? '⏸ 멈춤' : '▶ 자동 학습';
+  $('fRun').textContent = on ? '⏸ 멈춤' : '▶ 자동';
+}
 function stopRun(){
   const was = S.running;
   S.running = false; if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0;
-  $('bRun').textContent = '▶ 자동 학습';
+  setRunLabel(false);
   if (was) { bndDirty = true; setTimeout(renderAll, 0); }
 }
 function startRun(){
   if (S.phase !== 1){ flash('info', '학습 단계에서만 자동 학습이 가능합니다.'); return; }
-  S.running = true; S.acc = 0; $('bRun').textContent = '⏸ 멈춤';
+  /* 이미 목표를 지났다면 목표치만큼 더 돌고 멈춥니다 (무제한이면 멈추지 않습니다) */
+  if (S.targetEp <= 0) S.runStopAt = 0;
+  else if (S.epoch >= S.targetEp){
+    S.runStopAt = S.epoch + S.targetEp;
+    flash('info', `목표 ${S.targetEp} 에폭을 이미 지났습니다 — ${S.runStopAt} 에폭까지 ${S.targetEp} 에폭 더 돌립니다.`);
+  } else S.runStopAt = S.targetEp;
+  S.running = true; S.acc = 0; setRunLabel(true);
   let last = performance.now(), lastPaint = 0;
   const tick = now => {
     if (!S.running) return;
@@ -1339,6 +1403,7 @@ function paintNet(){
   else if (bwActive){ tag.className = 'flowtag show bw'; tag.textContent = '← 역전파 · 오차가 뒤로'; }
   else if (S.phase >= 2){ tag.className = 'flowtag show'; tag.textContent = '🔒 가중치 고정 · 순전파만'; }
   else if (S.phase === 1 && S.step === 4){ tag.className = 'flowtag show'; tag.textContent = '경사 하강법 · 가중치 갱신'; }
+  else if (S.phase === 1 && S.step === 0 && S.cur && S.cur.applied){ tag.className = 'flowtag show'; tag.textContent = '갱신 완료 · 같은 샘플 다시 계산'; }
   else tag.className = 'flowtag';
 }
 /* 그림에 표시할 샘플 (학습 중이면 배치의 focus, 평가/추론이면 각 단계의 입력) */
@@ -1354,9 +1419,16 @@ function currentSample(){
     const s = DATA[i];
     return { s, fw: forward(S.W, S.B, nx(s)), d: null, label: s[3], idx: i, tag: '평가 샘플' };
   }
-  if (!S.cur || S.step === 0) return null;
-  const p = S.cur.per[Math.min(S.focus, S.cur.per.length-1)];
-  return { s: DATA[p.i], fw: p.fw, d: p.d, label: DATA[p.i][3], idx: p.i, tag: '학습 샘플' };
+  if (!S.cur) return null;
+  const p = S.cur.per[Math.min(S.focus, S.cur.per.length-1)], s = DATA[p.i];
+  /* 갱신을 끝낸 직후에는 같은 샘플을 '바뀐 가중치'로 다시 계산해 보여 줍니다.
+     그림이 비지 않고, 갱신의 효과가 출력 확률에 바로 드러납니다.
+     (p.fw 는 갱신 전 값이므로 그대로 쓰면 새 가중치와 어긋납니다) */
+  if (S.step === 0)
+    return S.cur.applied
+      ? { s, fw: forward(S.W, S.B, nx(s)), d: null, label: s[3], idx: p.i, tag: '학습 샘플', post: true }
+      : null;
+  return { s, fw: p.fw, d: p.d, label: s[3], idx: p.i, tag: '학습 샘플' };
 }
 
 /* ==================== 가중치 표 ==================== */
@@ -1460,7 +1532,7 @@ function toggleSplit(i){
 }
 function renderStrip(){
   const splitLocked = S.phase > 0;
-  const curIdx = new Set(S.phase === 1 && S.cur && S.step > 0 ? S.cur.idxs : []);
+  const curIdx = new Set(S.phase === 1 && S.cur ? S.cur.idxs : []);
   const cs = currentSample();
   const focusIdx = cs && cs.idx != null ? cs.idx : -1;
   const testMap = new Map(S.phase === 2 ? (S.testRes || []).map(r => [r.i, r]) : []);
@@ -1487,10 +1559,19 @@ function renderStrip(){
       tr.classList.remove('wrong');
     } else { pr.textContent = '–'; pr.className = 'lbl-c pr'; tr.classList.remove('wrong'); }
   });
-  /* 손으로 진행할 때만 현재 행을 보이게 따라갑니다 */
+  /* 손으로 진행할 때만 현재 행을 따라갑니다.
+     scrollIntoView 는 창까지 움직여 고정 조작 박스가 사라지므로, 표 안에서만 스크롤합니다. */
   if (!S.running && focusIdx >= 0){
     const el = $('dr-' + focusIdx);
-    if (el && el !== lastScrolled){ lastScrolled = el; el.scrollIntoView({ block:'nearest' }); }
+    if (el && el !== lastScrolled){
+      lastScrolled = el;
+      const box = el.closest('.dwrap');
+      if (box){
+        const er = el.getBoundingClientRect(), br = box.getBoundingClientRect();
+        if (er.top < br.top) box.scrollTop -= (br.top - er.top);
+        else if (er.bottom > br.bottom) box.scrollTop += (er.bottom - br.bottom);
+      }
+    }
   }
   const tr = trainIdx(), te = testIdx();
   const cnt = (ids, k) => ids.filter(i => DATA[i][3] === k).length;
@@ -1998,6 +2079,7 @@ function renderPhase(){
   lb.className = 'lockbadge ' + (frozen ? 'frozen' : 'live');
   lb.textContent = frozen ? '🔒 가중치 고정됨' : '가중치 학습 중';
   ['bStep','bBatch','bEpoch','bRun','bReset'].forEach(id => { $(id).disabled = S.phase !== 1; });
+  ['fStep','fBatch','fEpoch','fRun'].forEach(id => { $(id).disabled = S.phase !== 1; });
   /* 설정은 평가 전까지(단계 0~1) 바꿀 수 있습니다 */
   const cfgLocked = S.phase > 1;
   $('batchSel').disabled = $('layerSel').disabled = $('actSel').disabled = $('targetSel').disabled = cfgLocked;
@@ -2011,6 +2093,27 @@ function renderPhase(){
   $('stName').textContent = S.phase === 1 ? STEP_NAMES[S.step]
     : (S.phase === 0 ? '데이터를 나누는 중' : (S.phase === 2 ? '평가 중 — 순전파만' : '추론 중 — 순전파만'));
 }
+
+/* ==================== 고정 조작 박스 ==================== */
+/* 본문 컨트롤이 보이는 동안에는 중복이므로 숨기고, 스크롤로 벗어나면 띄웁니다. */
+let mainCtlSeen = true, floatMini = false;
+function syncFloat(){
+  $('floatCtl').classList.toggle('mini', floatMini);
+  const P = progress();
+  $('floatCtl').classList.toggle('show', S.phase === 1 && !mainCtlSeen);
+  $('fEpochN').textContent = S.targetEp ? `${S.epoch} / ${S.targetEp}` : String(S.epoch);
+  const st = $('fStepper').children;
+  for (let k = 0; k < st.length; k++){
+    st[k].classList.toggle('on', k === S.step);
+    st[k].classList.toggle('done', k < S.step);
+  }
+  const pct = S.targetEp ? P.epPct : (P.last && isFinite(P.last.trAcc) ? P.last.trAcc : 0);
+  $('fPbarFill').style.width = (pct * 100).toFixed(1) + '%';
+  $('fPbar').classList.toggle('done', P.ready);
+  $('fAcc').textContent = '정확도 ' + (P.last && isFinite(P.last.trAcc) ? pct2(P.last.trAcc) : '–');
+  $('fLoss').textContent = '손실 ' + (P.last && isFinite(P.last.trLoss) ? fmt(P.last.trLoss, 3) : '–');
+}
+const pct2 = v => isFinite(v) ? Math.round(v*100) + '%' : '–';
 
 /* ==================== 전체 렌더 ==================== */
 let bndDirty = true, lastBnd = 0;
@@ -2051,10 +2154,10 @@ function renderAll(){
 
   const cs = currentSample();
   $('curSample').innerHTML = cs
-    ? `${cs.tag}${cs.idx != null ? ' #' + (cs.idx+1) : ''} — ${cs.s.slice(0,3).map((v,i) => FEAT[i] + ' ' + v).join(' · ')}${cs.label != null ? ` · 정답 <b>${CLS[cs.label]}</b>` : ' · 정답 없음'}`
+    ? `${cs.tag}${cs.idx != null ? ' #' + (cs.idx+1) : ''} — ${cs.s.slice(0,3).map((v,i) => FEAT[i] + ' ' + v).join(' · ')}${cs.label != null ? ` · 정답 <b>${CLS[cs.label]}</b>` : ' · 정답 없음'}${cs.post ? ' · <b>갱신 후</b> 다시 계산한 값' : ''}`
     : '<span style="color:var(--muted)">진행하면 샘플이 여기에 표시됩니다</span>';
 
-  renderProgress();
+  renderProgress(); syncFloat();
   paintNet(); renderWeights(); renderSteps(); renderBatchTable(); renderStrip();
   renderInspect(); renderTest(); renderInfer();
   drawLoss(); drawAct();
@@ -2063,10 +2166,24 @@ function renderAll(){
 }
 
 /* ==================== 이벤트 ==================== */
-$('bStep').addEventListener('click', () => { stopRun(); if (advance()) { bndDirty = true; renderAll(); } });
-$('bBatch').addEventListener('click', () => { stopRun(); runBatchToEnd(); bndDirty = true; renderAll(); });
-$('bEpoch').addEventListener('click', () => { stopRun(); runEpoch(); bndDirty = true; renderAll(); });
-$('bRun').addEventListener('click', () => { S.running ? stopRun() : startRun(); renderAll(); });
+/* 같은 동작을 본문 컨트롤과 고정 박스 양쪽에 연결합니다 */
+const RUN_ACTIONS = [
+  ['bStep',  'fStep',  () => { stopRun(); if (advance()) { bndDirty = true; renderAll(); } }],
+  ['bBatch', 'fBatch', () => { stopRun(); runBatchToEnd(); bndDirty = true; renderAll(); }],
+  ['bEpoch', 'fEpoch', () => { stopRun(); runEpoch(); bndDirty = true; renderAll(); }],
+  ['bRun',   'fRun',   () => { S.running ? stopRun() : startRun(); renderAll(); }]
+];
+for (const [main, float, fn] of RUN_ACTIONS){
+  $(main).addEventListener('click', fn);
+  $(float).addEventListener('click', fn);
+}
+$('fMin').addEventListener('click', () => {
+  floatMini = !floatMini;
+  $('fMin').textContent = floatMini ? '+' : '−';
+  $('fMin').setAttribute('aria-label', floatMini ? '조작 박스 펼치기' : '조작 박스 접기');
+  $('fMin').title = floatMini ? '펼치기' : '접기';
+  syncFloat();
+});
 $('bReset').addEventListener('click', () => { resetTraining(true); introUp = false; flash('info', '가중치를 초기값으로 되돌렸습니다. 데이터 분할은 그대로입니다.'); });
 $('aUp').addEventListener('click', () => { S.ai = Math.min(ALPHAS.length-1, S.ai+1); renderAll(); });
 $('aDown').addEventListener('click', () => { S.ai = Math.max(0, S.ai-1); renderAll(); });
@@ -2159,6 +2276,11 @@ autoSplit(splitRatio, splitSeq);
 resetTraining(true);
 drawLr();
 flash('info', '① 아래 표에서 데이터를 나눈 뒤 ② “학습 Training”을 눌러 시작하세요.', true);
+
+new IntersectionObserver(es => {
+  mainCtlSeen = es[0].isIntersecting;
+  syncFloat();
+}, { threshold: 0 }).observe($('mainCtl'));
 
 let lastW = 0;
 new ResizeObserver(() => {
