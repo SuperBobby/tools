@@ -345,6 +345,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .note-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
 .note-card h2{font-size:16px}
 .note-card p{color:var(--ink-2);font-size:14px;max-width:64ch}
+.note-card.wide{grid-column:1/-1}
+.note-card.wide dl.gloss{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);column-gap:24px}
+@media (max-width:1040px){.note-card.wide dl.gloss{grid-template-columns:auto minmax(0,1fr)}}
 .note-card ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:14px;display:flex;flex-direction:column;gap:4px}
 dl.gloss{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;margin:0;font-size:14px}
 dl.gloss dt{text-align:right;white-space:nowrap}
@@ -378,7 +381,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     <div>
       <div class="eyebrow">Multi-Layer Perceptron · 학습 → 평가 → 사용</div>
       <h1>순전파와 역전파</h1>
-      <p class="lede">공부시간·집중도·식사량으로 <strong>합격/불합격</strong>을 맞히는 다층 퍼셉트론입니다. 데이터를 직접 나눈 뒤, 샘플이 하나씩 들어가며 <span class="m"><i class="w">w</i></span>가 갱신되는 과정을 <strong>순전파 → 비용 → 역전파 → 업데이트</strong> 네 단계로 따라가고, 학습이 끝나면 <strong>가중치를 고정한 채</strong> 평가와 실제 사용까지 이어집니다.</p>
+      <p class="lede">공부시간·집중도·식사량으로 <strong>합격/불합격</strong>을 맞히는 <strong>다층 퍼셉트론(Multi-Layer Perceptron, MLP)</strong>입니다. 데이터를 직접 나눈 뒤, 샘플이 하나씩 들어가며 가중치(weight) <span class="m"><i class="w">w</i></span>가 갱신되는 과정을 <strong>순전파(forward propagation) → 손실(loss) → 역전파(backpropagation) → 가중치 갱신</strong> 네 단계로 따라가고, 학습이 끝나면 <strong>가중치를 고정한 채</strong> 평가(test)와 추론(inference)까지 이어집니다.</p>
     </div>
     <div class="model" aria-live="polite">
       <span class="lbl">현재 모델</span>
@@ -394,7 +397,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </button>
     <button class="ph" type="button" data-p="1">
       <span class="pn">단계 2</span><span class="pt">학습 Training</span>
-      <span class="pd">순전파 · 역전파로 가중치를 갱신</span>
+      <span class="pd">순전파 · 역전파로 가중치를 갱신합니다</span>
     </button>
     <button class="ph" type="button" data-p="2">
       <span class="pn">단계 3</span><span class="pt">평가 Test</span>
@@ -402,14 +405,14 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </button>
     <button class="ph" type="button" data-p="3">
       <span class="pn">단계 4</span><span class="pt">사용 Inference</span>
-      <span class="pd">가중치 고정 · 정답 없는 새 입력</span>
+      <span class="pd">가중치 고정 · 정답(label) 없는 새 입력</span>
     </button>
   </nav>
 
   <section class="panel tabsec t1" id="secStatus" style="--o1:2" aria-label="학습 상태와 조작">
     <div class="status">
       <div class="it">에폭 <b id="stEpoch">0</b></div>
-      <div class="it">업데이트 <b id="stIter">0</b>회</div>
+      <div class="it">갱신 <b id="stIter">0</b>회</div>
       <div class="stepper" id="stepper" aria-label="현재 단계">
         <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
       </div>
@@ -424,7 +427,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
     <div class="controls">
       <div class="group">
-        <button class="btn primary" id="bStep" type="button" title="순전파 → 비용 → 역전파 → 업데이트를 하나씩">한 단계 →</button>
+        <button class="btn primary" id="bStep" type="button" title="순전파 → 손실 → 역전파 → 갱신을 하나씩">한 단계 →</button>
         <button class="btn" id="bBatch" type="button" title="배치 하나를 끝까지 처리합니다">1 배치 ⇥</button>
         <button class="btn" id="bEpoch" type="button" title="학습 데이터를 한 바퀴 돕니다">1 에폭 전체</button>
         <button class="btn" id="bRun" type="button">▶ 자동 학습</button>
@@ -439,11 +442,11 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <div class="group">
         <label class="glbl" for="batchSel">배치 크기</label>
         <select class="btn" id="batchSel">
-          <option value="1" selected>1 (샘플 하나씩)</option>
-          <option value="4">4 (미니배치)</option>
-          <option value="8">8 (미니배치)</option>
-          <option value="16">16 (미니배치)</option>
-          <option value="0">전체 (배치 학습)</option>
+          <option value="1" selected>1 — 확률적 경사 하강법 (SGD)</option>
+          <option value="4">4 — 미니배치 (mini-batch)</option>
+          <option value="8">8 — 미니배치</option>
+          <option value="16">16 — 미니배치</option>
+          <option value="0">전체 — 배치 경사 하강법</option>
         </select>
       </div>
       <div class="group">
@@ -479,10 +482,10 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <label class="switch" for="shuffleOn"><input type="checkbox" id="shuffleOn" checked> 에폭마다 순서 섞기</label>
     </div>
     <div class="tiles">
-      <div class="tile"><span class="tl">학습 손실 <span class="m"><i>E</i></span></span><span class="tv" id="tLoss">–</span><span class="ts" id="tLossS">교차 엔트로피 평균</span></div>
+      <div class="tile"><span class="tl">학습 손실 <span class="m"><i>E</i></span></span><span class="tv" id="tLoss">–</span><span class="ts" id="tLossS">교차 엔트로피(cross-entropy) 평균</span></div>
       <div class="tile"><span class="tl">학습 정확도</span><span class="tv" id="tAcc">–</span><span class="ts" id="tAccS">학습 데이터 기준</span></div>
       <div class="tile"><span class="tl">평가 정확도</span><span class="tv" id="tTest">–</span><span class="ts" id="tTestS">단계 3에서 측정</span></div>
-      <div class="tile"><span class="tl">1 에폭 = 업데이트 횟수</span><span class="tv" id="tUpd">–</span><span class="ts" id="tUpdS"></span></div>
+      <div class="tile"><span class="tl">1 에폭(epoch) = 갱신 횟수</span><span class="tv" id="tUpd">–</span><span class="ts" id="tUpdS"></span></div>
     </div>
   </section>
 
@@ -520,7 +523,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <p class="tnote" id="testPeekNote" style="display:none;padding:0">평가 데이터는 <strong>학습에 쓰이지 않습니다.</strong> 실무에서는 이렇게 학습 중에 들여다보는 용도로 <strong>검증(validation) 데이터</strong>를 따로 두고, 평가 데이터는 맨 마지막에 딱 한 번만 씁니다.</p>
       </div>
       <div class="panel chart">
-        <div class="chart-head"><h2>결정 경계</h2><span class="note">가로 공부시간 · 세로 집중도</span></div>
+        <div class="chart-head"><h2>결정 경계 (decision boundary)</h2><span class="note">가로 공부시간 · 세로 집중도</span></div>
         <div class="cv" id="wrapBnd"><canvas id="cvBnd" role="img" aria-label="공부시간과 집중도 평면에서 모델이 합격으로 예측하는 영역"></canvas></div>
         <div class="legend">
           <span><i class="key dot" style="background:var(--pass)"></i>합격 (학습)</span>
@@ -541,49 +544,49 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <div class="sec-h"><h2>가중치 한 번 갱신하기</h2><p>현재 단계가 강조됩니다</p></div>
       <div class="steps" id="steps">
         <article class="step" data-s="0">
-          <span class="no">0</span><h3>배치 선택</h3>
+          <span class="no">0</span><h3>미니배치(mini-batch) 선택</h3>
           <div class="body">
-            <p id="s0txt">이번 업데이트에 쓸 학습 샘플을 고릅니다. 배치 크기가 1이면 한 명씩, 크면 여러 명을 묶어 넣습니다.</p>
+            <p id="s0txt">이번 갱신에 쓸 학습 샘플을 고릅니다. 배치 크기가 1이면 샘플 하나씩(확률적 경사 하강법, SGD), 크면 여러 샘플을 묶어(미니배치) 넣습니다.</p>
             <p class="cap">아래 <strong>학습 데이터</strong> 표에서 지금 들어간 행이 강조됩니다.</p>
           </div>
         </article>
         <article class="step" data-s="1">
-          <span class="no">1</span><h3>순전파 (Forward) — 앞으로</h3>
+          <span class="no">1</span><h3>순전파 (forward propagation) — 앞으로</h3>
           <div class="body">
             <div class="row"><span class="m"><i>z</i><sub><i>j</i></sub> = <span class="sum"><small>i</small><span class="sg">Σ</span></span><i class="w">w</i><sub><i>ji</i></sub><i>a</i><sub><i>i</i></sub> + <i class="b">b</i><sub><i>j</i></sub></span> &nbsp;<span class="m">, &nbsp;<i>a</i><sub><i>j</i></sub> = <i>φ</i>(<i>z</i><sub><i>j</i></sub>)</span></div>
             <div class="row" id="s1calc"><span class="cap">입력층부터 오른쪽으로 값이 흘러갑니다.</span></div>
-            <p class="cap">마지막 층은 <strong>softmax</strong>로 두 확률을 만듭니다. 합은 항상 1입니다.</p>
+            <p class="cap">마지막 층은 <strong>소프트맥스(softmax)</strong>로 두 확률을 만듭니다. 합은 항상 1입니다.</p>
           </div>
         </article>
         <article class="step" data-s="2">
-          <span class="no">2</span><h3>비용 계산 (Cost)</h3>
+          <span class="no">2</span><h3>손실 계산 (loss)</h3>
           <div class="body">
-            <div class="row"><span class="m"><i>E</i> = −log <i>ŷ</i><sub>정답</sub></span> <span class="cap">(교차 엔트로피)</span></div>
+            <div class="row"><span class="m"><i>E</i> = −log <i>ŷ</i><sub>정답</sub></span> <span class="cap">교차 엔트로피(cross-entropy) 손실</span></div>
             <div class="row" id="s2calc"><span class="cap">예측이 정답에 가까울수록 0에 가까워집니다.</span></div>
-            <p class="cap">배치에 여러 샘플이 있으면 각자의 비용을 <strong>평균</strong>냅니다.</p>
+            <p class="cap">배치에 여러 샘플이 있으면 각자의 손실을 <strong>평균</strong>냅니다. 이 평균을 <strong>비용(cost)</strong>이라고 부르며, 강의 슬라이드의 ‘비용’이 이것입니다.</p>
           </div>
         </article>
         <article class="step" data-s="3">
-          <span class="no">3</span><h3>역전파 (Backward) — 뒤로</h3>
+          <span class="no">3</span><h3>역전파 (backpropagation) — 뒤로</h3>
           <div class="body">
-            <div class="row"><span class="m"><i class="d">δ</i><sup>(출력)</sup> = <i>ŷ</i> − <i>y</i></span> <span class="cap">softmax + 교차 엔트로피라서 이렇게 간단해집니다</span></div>
+            <div class="row"><span class="m"><i class="d">δ</i><sup>(출력)</sup> = <i>ŷ</i> − <i>y</i></span> <span class="cap">소프트맥스 + 교차 엔트로피 조합이라 이렇게 간단해집니다</span></div>
             <div class="row"><span class="m"><i class="d">δ</i><sup>(<i>l</i>)</sup> = (<i class="w">W</i><sup>(<i>l</i>+1)</sup><sup>⊤</sup><i class="d">δ</i><sup>(<i>l</i>+1)</sup>) ⊙ <i>φ</i>′(<i>z</i><sup>(<i>l</i>)</sup>)</span></div>
-            <div class="row"><span class="m"><span class="frac"><span>∂<i>E</i></span><span>∂<i class="w">w</i><sub><i>ji</i></sub></span></span> = <i class="d">δ</i><sub><i>j</i></sub> · <i>a</i><sub><i>i</i></sub></span> <span class="cap">오차 신호 × 들어온 값</span></div>
+            <div class="row"><span class="m"><span class="frac"><span>∂<i>E</i></span><span>∂<i class="w">w</i><sub><i>ji</i></sub></span></span> = <i class="d">δ</i><sub><i>j</i></sub> · <i>a</i><sub><i>i</i></sub></span> <span class="cap">오차 신호 × 들어온 값 · 연쇄 법칙(chain rule)</span></div>
             <div class="row" id="s3calc"></div>
           </div>
         </article>
         <article class="step" data-s="4">
-          <span class="no">4</span><h3>가중치 업데이트</h3>
+          <span class="no">4</span><h3>가중치 갱신 — 경사 하강법 (gradient descent)</h3>
           <div class="body">
             <div class="row"><span class="m"><i class="w">w</i><sub><i>ji</i></sub> := <i class="w">w</i><sub><i>ji</i></sub> − <i>α</i><span class="frac"><span>∂<i>E</i></span><span>∂<i class="w">w</i><sub><i>ji</i></sub></span></span></span></div>
             <div class="row" id="s4calc"></div>
-            <p class="cap">모든 가중치가 <strong>동시에</strong> 조금씩 움직입니다. <span class="m"><i>α</i></span>가 보폭이고, 경사가 방향입니다. 그다음 단계 0으로 돌아가 다음 배치를 처리합니다.</p>
+            <p class="cap">모든 가중치가 <strong>동시에</strong> 조금씩 움직입니다. 경사(gradient) <span class="m">∂<i>E</i>/∂<i class="w">w</i></span>가 방향을, 학습률(learning rate) <span class="m"><i>α</i></span>가 보폭을 정합니다. 그다음 단계 0으로 돌아가 다음 배치를 처리합니다.</p>
           </div>
         </article>
       </div>
     </div>
     <div>
-      <div class="sec-h"><h2>가중치와 편향</h2><p id="wNote">아래 숫자가 매 업데이트마다 바뀝니다</p></div>
+      <div class="sec-h"><h2>가중치와 편향</h2><p id="wNote">아래 숫자가 매 갱신마다 바뀝니다</p></div>
       <div class="panel wpanel" id="wpanel"></div>
       <div class="sec-h" style="margin-top:16px"><h2>이번 배치</h2><p id="bNote"></p></div>
       <div class="panel">
@@ -613,7 +616,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <p class="tnote" id="inspNote"></p>
     </div>
     <div class="panel chart">
-      <div class="chart-head"><h2>활성화 함수 <span class="m"><i>φ</i></span></h2>
+      <div class="chart-head"><h2>활성화 함수 (activation function) <span class="m"><i>φ</i></span></h2>
         <select class="btn" id="actSel" style="font-size:13px;padding:4px 24px 4px 8px">
           <option value="sigmoid" selected>시그모이드</option>
           <option value="tanh">tanh</option>
@@ -626,7 +629,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <span><i class="key dash" style="border-color:var(--resid)"></i><span class="m"><i>φ</i>′(<i>z</i>)</span> 역전파에 곱해지는 값</span>
         <span><i class="key dot" style="background:var(--ink)"></i>선택한 뉴런의 <span class="m"><i>z</i></span></span>
       </div>
-      <p class="tnote">활성화 함수를 바꾸면 가중치가 초기화됩니다. <span class="m"><i>φ</i>′</span>이 0에 가까운 구간에서는 역전파 신호가 거의 사라집니다 — 학습이 느려지는 흔한 이유입니다.</p>
+      <p class="tnote">활성화 함수를 바꾸면 가중치가 초기화(initialization)됩니다. <span class="m"><i>φ</i>′</span>이 0에 가까운 구간에서는 역전파 신호가 거의 사라지는데, 이것을 <strong>기울기 소실(vanishing gradient)</strong>이라고 하며 깊은 신경망의 학습이 느려지는 대표적인 원인입니다.</p>
     </div>
   </section>
 
@@ -657,7 +660,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           <tbody id="dbody"></tbody>
         </table>
       </div>
-      <p class="tnote" style="padding:0">평가 데이터는 <strong>학습에 한 번도 쓰이지 않습니다.</strong> 시험 문제를 미리 보여주고 시험을 치면 점수가 부풀듯, 평가 데이터를 학습에 섞으면 성능이 실제보다 좋아 보입니다. 학습을 시작한 뒤 분할을 바꾸면 가중치가 초기화됩니다.</p>
+      <p class="tnote" style="padding:0">평가 데이터는 <strong>학습에 한 번도 쓰이지 않습니다.</strong> 시험 문제를 미리 보여주고 시험을 치면 점수가 부풀듯, 평가 데이터를 학습에 섞으면 성능이 실제보다 좋아 보입니다 — 이것이 <strong>데이터 누수(data leakage)</strong>입니다. 학습을 시작한 뒤 분할을 바꾸면 가중치가 초기화됩니다.</p>
     </div>
   </section>
 
@@ -669,19 +672,19 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     <div class="panel">
       <div class="controls" style="border-top:0">
         <div class="group">
-          <button class="btn primary" id="bTestAll" type="button">평가 데이터 전체 채점</button>
-          <button class="btn" id="bTestStep" type="button">한 명씩 통과시키기 →</button>
+          <button class="btn primary" id="bTestAll" type="button">평가 데이터 전체 평가</button>
+          <button class="btn" id="bTestStep" type="button">한 샘플씩 평가 →</button>
           <button class="btn" id="bTestReset" type="button">⟲ 결과 지우기</button>
         </div>
         <span class="spacer"></span>
-        <span class="lockbadge frozen">🔒 가중치 고정 · 역전파 없음</span>
+        <span class="lockbadge frozen">🔒 가중치 고정(freeze) · 역전파 없음</span>
       </div>
       <div class="results">
         <div style="display:flex;flex-direction:column;gap:12px">
           <div>
             <span class="tl" style="font-size:12px;color:var(--muted)">평가 정확도 <span style="color:var(--ink-2)">(처음 보는 데이터)</span></span>
             <div class="bignum" id="testAccBig">–</div>
-            <div class="ts" style="font-size:12px;color:var(--ink-2)" id="testAccSub">아직 채점하지 않았습니다</div>
+            <div class="ts" style="font-size:12px;color:var(--ink-2)" id="testAccSub">아직 평가하지 않았습니다</div>
           </div>
           <div>
             <span class="tl" style="font-size:12px;color:var(--muted)">학습 정확도 <span style="color:var(--ink-2)">(외운 문제)</span></span>
@@ -701,7 +704,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           </table>
         </div>
       </div>
-      <p class="tnote">채점 중에는 <span class="m"><i class="w">w</i></span>와 <span class="m"><i class="b">b</i></span>가 <strong>한 글자도 바뀌지 않습니다.</strong> 순전파만 돌고 역전파와 업데이트는 건너뜁니다. 위 <strong>가중치와 편향</strong> 표의 Δ가 모두 멈춘 것을 확인해 보세요.</p>
+      <p class="tnote">평가 중에는 <span class="m"><i class="w">w</i></span>와 <span class="m"><i class="b">b</i></span>가 <strong>한 글자도 바뀌지 않습니다.</strong> 순전파만 계산하고 역전파와 가중치 갱신은 건너뜁니다. 위 <strong>가중치와 편향</strong> 표의 Δ가 모두 멈춘 것을 확인해 보세요.</p>
     </div>
   </section>
 
@@ -716,7 +719,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           <div class="slot"><label for="inS">공부시간</label><input type="range" id="inS" min="0" max="10" step="1" value="7"><output id="inSV">7</output></div>
           <div class="slot"><label for="inF">집중도</label><input type="range" id="inF" min="0" max="10" step="1" value="6"><output id="inFV">6</output></div>
           <div class="slot"><label for="inM">식사량</label><input type="range" id="inM" min="0" max="10" step="1" value="5"><output id="inMV">5</output></div>
-          <p class="foot">이 세 값은 학습 데이터에도 평가 데이터에도 없는 <strong>새로운 입력</strong>입니다. 정답표가 없으니 맞았는지 틀렸는지 알 수 없고, 모델은 그저 배운 가중치로 계산만 합니다.</p>
+          <p class="foot">이 세 값은 학습 데이터에도 평가 데이터에도 없는 <strong>새로운 입력</strong>입니다. 정답(label)이 없으니 맞았는지 틀렸는지 알 수 없고, 모델은 배운 가중치로 순전파만 계산합니다.</p>
         </div>
         <div class="verdict">
           <span class="vh">모델의 예측</span>
@@ -728,12 +731,12 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
           <span class="lockbadge frozen" style="align-self:flex-start">🔒 학습 때 찾은 가중치 그대로</span>
         </div>
       </div>
-      <p class="tnote">슬라이더를 움직이면 순전파가 다시 돌아 확률이 바뀝니다. 하지만 <strong>가중치는 움직이지 않습니다.</strong> 실제 서비스에서 모델이 하는 일이 바로 이것입니다 — 고정된 가중치로 순전파 한 번.</p>
+      <p class="tnote">슬라이더를 움직이면 순전파가 다시 계산되어 확률이 바뀝니다. 하지만 <strong>가중치는 움직이지 않습니다.</strong> 실제 서비스에서 모델이 하는 일, 곧 <strong>추론(inference)</strong>이 바로 이것입니다 — 고정된 가중치로 순전파 한 번.</p>
     </div>
   </section>
 
   <section class="block tabsec t1" id="secLr" style="--o1:6">
-    <div class="sec-h"><h2>학습률 <span class="m"><i>α</i></span>은 보폭입니다</h2><p>같은 초기 가중치로 세 가지 학습률을 각각 돌려 비교합니다</p></div>
+    <div class="sec-h"><h2>학습률(learning rate) <span class="m"><i>α</i></span>은 보폭입니다</h2><p>같은 초기 가중치로 세 가지 학습률을 각각 돌려 비교합니다</p></div>
     <div class="panel chart">
       <div class="chart-head">
         <div class="group">
@@ -744,7 +747,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       </div>
       <div class="cv" id="wrapLr"><canvas id="cvLr" role="img" aria-label="세 가지 학습률의 손실 곡선 비교"></canvas></div>
       <div class="legend" id="lrLegend"></div>
-      <p class="tnote"><strong>너무 작으면</strong> 옳은 방향이지만 거의 제자리입니다. <strong>너무 크면</strong> 골짜기를 뛰어넘어 손실이 튀거나 아예 주저앉습니다. 적당한 값에서만 손실이 꾸준히 내려갑니다. 업데이트 식 <span class="m"><i class="w">w</i> := <i class="w">w</i> − <i>α</i>·∂<i>E</i>/∂<i class="w">w</i></span>에서 경사는 <em>방향</em>, <span class="m"><i>α</i></span>는 <em>보폭</em>을 정합니다.</p>
+      <p class="tnote"><strong>너무 작으면</strong> 방향은 맞지만 거의 제자리입니다 — 수렴(convergence)이 한없이 느려집니다. <strong>너무 크면</strong> 골짜기를 뛰어넘어 손실이 튀거나 아예 주저앉는 <strong>발산(divergence)</strong>이 일어납니다. 적당한 값에서만 손실이 꾸준히 내려갑니다. 갱신 식 <span class="m"><i class="w">w</i> := <i class="w">w</i> − <i>α</i>·∂<i>E</i>/∂<i class="w">w</i></span>에서 경사는 <em>방향</em>, <span class="m"><i>α</i></span>는 <em>보폭</em>을 정합니다.</p>
     </div>
   </section>
 
@@ -755,61 +758,67 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
       <ul>
         <li><strong>1 데이터 나누기</strong> — 아래 표에서 학습용과 평가용을 가릅니다. 지금 이 화면입니다.</li>
         <li><strong>2 학습</strong> — 학습용만 신경망에 넣어 가중치를 갱신합니다.</li>
-        <li><strong>3 평가</strong> — 가중치를 고정하고, 한 번도 안 본 평가용으로 채점합니다.</li>
-        <li><strong>4 사용</strong> — 정답이 없는 새 입력을 넣어 봅니다.</li>
+        <li><strong>3 평가</strong> — 가중치를 고정하고, 한 번도 보지 않은 평가용으로 성능을 잽니다.</li>
+        <li><strong>4 사용</strong> — 정답이 없는 새 입력으로 추론(inference)합니다.</li>
       </ul>
       <p>먼저 분할 비율만 정하고 <strong>2 학습</strong>으로 넘어가면 됩니다. 표의 행을 클릭해 직접 나눠도 됩니다.</p>
     </div>
     <div class="panel note-card">
       <h2>왜 학습·평가를 나눌까</h2>
       <p>학습 데이터에서의 정확도는 <strong>외운 문제를 다시 푼 점수</strong>에 가깝습니다. 모델이 진짜 규칙을 배웠는지 알려면 <strong>한 번도 보지 않은 데이터</strong>로 재야 합니다.</p>
-      <p>학습 손실은 계속 내려가는데 평가 성능이 더는 좋아지지 않거나 나빠지면 <strong>과적합(overfitting)</strong>입니다.</p>
-      <p>평가 결과를 보고 학습률이나 층 구조를 고치기 시작하면, 평가 데이터가 사실상 학습에 쓰인 셈이 됩니다. 그래서 실무에서는 <strong>학습 / 검증 / 평가</strong> 세 벌로 나눕니다.</p>
+      <p>학습 손실은 계속 내려가는데 평가 성능이 더는 좋아지지 않거나 나빠지면 <strong>과적합(overfitting)</strong>입니다. 반대로 처음 보는 데이터에서도 잘 맞히는 능력을 <strong>일반화(generalization)</strong>라고 합니다.</p>
+      <p>평가 결과를 보고 학습률이나 층 구조를 고치기 시작하면, 평가 데이터가 사실상 학습에 쓰인 셈이 됩니다. 이것을 <strong>데이터 누수(data leakage)</strong>라고 합니다. 그래서 실무에서는 <strong>학습(train) / 검증(validation) / 평가(test)</strong> 세 벌로 나눕니다.</p>
     </div>
   </section>
 
   <section class="notes tabsec t1" id="secNotesTrain" style="--o1:7">
     <div class="panel note-card">
-      <h2>에폭 · 배치 · 업데이트</h2>
-      <p>학습 데이터가 <b id="n1">36</b>개, 배치 크기가 <b id="n2">1</b>이면 <strong>1 에폭 = <b id="n3">36</b>번의 가중치 업데이트</strong>입니다. 배치 크기를 키우면 한 에폭 안의 업데이트 횟수가 줄어들어 같은 에폭에서도 덜 움직입니다. 대신 여러 샘플의 경사를 평균내므로 방향이 덜 흔들립니다.</p>
+      <h2>에폭 · 배치 · 반복</h2>
+      <p>학습 데이터가 <b id="n1">36</b>개, 배치 크기가 <b id="n2">1</b>이면 <strong>1 에폭 = <b id="n3">36</b>번의 가중치 갱신</strong>입니다. 가중치를 한 번 갱신하는 것을 <strong>반복(iteration)</strong>이라고 부릅니다. 배치 크기를 키우면 한 에폭 안의 반복 횟수가 줄어들어 같은 에폭에서도 덜 움직입니다. 대신 여러 샘플의 경사를 평균내므로 방향이 덜 흔들립니다.</p>
       <ul>
-        <li><strong>배치 크기 1</strong> — 샘플 하나마다 갱신. 빠르게 움직이지만 손실 곡선이 지그재그입니다.</li>
-        <li><strong>미니배치</strong> — 2~4개씩 평균. 실전에서 가장 많이 쓰는 방식입니다.</li>
-        <li><strong>전체 배치</strong> — 한 에폭에 딱 한 번 갱신. 가장 매끄럽지만 가장 느립니다.</li>
+        <li><strong>배치 크기 1 — 확률적 경사 하강법(SGD, Stochastic Gradient Descent)</strong>. 샘플 하나마다 갱신합니다. 빠르게 움직이지만 손실 곡선이 지그재그입니다.</li>
+        <li><strong>미니배치(mini-batch)</strong> — 4~16개씩 경사를 평균냅니다. 실전에서 가장 많이 쓰는 방식입니다.</li>
+        <li><strong>전체 배치 — 배치 경사 하강법(batch gradient descent)</strong>. 한 에폭에 딱 한 번 갱신합니다. 가장 매끄럽지만 가장 느립니다.</li>
       </ul>
-      <p><strong>배치를 키우면 학습률도 같이 키워야 합니다.</strong> 배치가 4배가 되면 에폭당 업데이트가 4배 줄어드니, 같은 에폭 수로 비슷하게 배우려면 <span class="m"><i>α</i></span>도 약 4배가 되어야 합니다. 이 도구는 배치를 바꿀 때 <span class="m"><i>α</i></span>를 그 비율로 자동으로 맞춰 줍니다 — 물론 직접 다시 바꿔도 됩니다.</p>
+      <p><strong>배치를 키우면 학습률도 같이 키워야 합니다.</strong> 배치가 4배가 되면 에폭당 갱신 횟수가 4배 줄어드니, 같은 에폭 수로 비슷하게 배우려면 <span class="m"><i>α</i></span>도 약 4배가 되어야 합니다. 이를 <strong>선형 스케일링 법칙(linear scaling rule)</strong>이라고 합니다. 이 도구는 배치를 바꿀 때 <span class="m"><i>α</i></span>를 그 비율로 자동으로 맞춰 줍니다 — 물론 직접 다시 바꿔도 됩니다.</p>
       <p>같은 데이터를 여러 에폭 반복해서 보는 이유는, 한 번 봐서는 가중치가 조금밖에 못 움직이기 때문입니다.</p>
     </div>
     <div class="panel note-card">
       <h2>이 그림에서 눈여겨볼 것</h2>
       <ul>
-        <li><strong>식사량 가중치</strong>는 거의 자라지 않습니다. 합격 여부와 상관이 없는 입력이라 경사가 서로 상쇄되기 때문입니다. 신경망이 <em>쓸모없는 특성을 스스로 줄이는</em> 모습입니다.</li>
-        <li><strong>편향 <span class="m"><i class="b">b</i></span></strong>는 입력이 모두 0이어도 살아 있는 값입니다. 결정 경계를 원점에서 밀어내는 역할을 합니다. 그림의 점선 연결선이 편향입니다.</li>
-        <li><strong>활성화 함수가 없다면</strong> 층을 아무리 쌓아도 결국 직선 하나입니다. 곡선 경계는 <span class="m"><i>φ</i></span> 덕분에 생깁니다.</li>
-        <li><strong>입력 정규화</strong> — 0~10 값을 <span class="m">(<i>x</i>−5)/5</span>로 바꿔 −1~1에 넣습니다. 스케일이 제각각이면 어떤 가중치는 너무 크게, 어떤 것은 너무 작게 움직입니다.</li>
-        <li><strong>초기 가중치는 무작위</strong>입니다. 전부 0으로 두면 은닉 뉴런들이 완전히 똑같이 움직여 서로 다른 특징을 배우지 못합니다.</li>
+        <li><strong>식사량 가중치</strong>는 거의 자라지 않습니다. 합격 여부와 상관이 없는 <strong>특성(feature)</strong>이라 경사가 서로 상쇄되기 때문입니다. 신경망이 <em>무관한 특성을 스스로 줄이는</em> 모습입니다.</li>
+        <li><strong>편향(bias) <span class="m"><i class="b">b</i></span></strong>는 입력이 모두 0이어도 살아 있는 값입니다. 결정 경계를 원점에서 밀어내는 역할을 합니다. 그림의 점선 연결선이 편향입니다.</li>
+        <li><strong>활성화 함수가 없다면</strong> 층을 아무리 쌓아도 결국 직선 하나입니다 — 선형 변환을 겹쳐도 선형이기 때문입니다. 곡선 경계는 <span class="m"><i>φ</i></span>의 <strong>비선형성(non-linearity)</strong> 덕분에 생깁니다.</li>
+        <li><strong>입력 정규화(input normalization)</strong> — 0~10 값을 <span class="m">(<i>x</i>−5)/5</span>로 바꿔 −1~1 범위에 넣습니다. 스케일이 제각각이면 어떤 가중치는 너무 크게, 어떤 것은 너무 작게 움직입니다.</li>
+        <li><strong>가중치 초기화(weight initialization)는 무작위</strong>로 합니다. 전부 0으로 두면 은닉 뉴런들이 완전히 똑같이 움직여 서로 다른 특징을 배우지 못합니다(대칭성 문제).</li>
       </ul>
     </div>
-    <div class="panel note-card">
-      <h2>기호 설명</h2>
+    <div class="panel note-card wide">
+      <h2>기호와 용어</h2>
       <dl class="gloss">
-        <dt class="m"><i>x</i></dt><dd>입력값 (공부시간·집중도·식사량)</dd>
-        <dt class="m"><i>y</i></dt><dd>정답. 합격 = (1, 0), 불합격 = (0, 1)</dd>
-        <dt class="m"><i class="w">w</i><sub><i>ji</i></sub></dt><dd>가중치. 앞 층 <span class="m"><i>i</i></span>번 뉴런이 뒤 층 <span class="m"><i>j</i></span>번 뉴런에 주는 영향</dd>
-        <dt class="m"><i class="b">b</i><sub><i>j</i></sub></dt><dd>편향. 입력과 무관하게 더해지는 값</dd>
+        <dt class="m"><i>x</i></dt><dd>입력값. 여기서는 특성(feature) 셋 — 공부시간·집중도·식사량</dd>
+        <dt class="m"><i>y</i></dt><dd>정답(label). 합격 = (1, 0), 불합격 = (0, 1) 같은 원-핫(one-hot) 표현</dd>
+        <dt class="m"><i class="w">w</i><sub><i>ji</i></sub></dt><dd>가중치(weight). 앞 층 <span class="m"><i>i</i></span>번 뉴런이 뒤 층 <span class="m"><i>j</i></span>번 뉴런에 주는 영향</dd>
+        <dt class="m"><i class="b">b</i><sub><i>j</i></sub></dt><dd>편향(bias). 입력과 무관하게 더해지는 값</dd>
         <dt class="m"><i>z</i></dt><dd>가중합 <span class="m">Σ<i class="w">w</i><i>a</i> + <i class="b">b</i></span></dd>
-        <dt class="m"><i>a</i> = <i>φ</i>(<i>z</i>)</dt><dd>활성화 값. 뉴런의 출력</dd>
-        <dt class="m"><i>ŷ</i></dt><dd>모델이 낸 확률 (softmax 출력, 합은 1)</dd>
-        <dt class="m"><i>E</i></dt><dd>비용/손실. 교차 엔트로피 <span class="m">−log <i>ŷ</i><sub>정답</sub></span></dd>
-        <dt class="m"><i class="d">δ</i></dt><dd>오차 신호. 그 뉴런의 <span class="m"><i>z</i></span>가 비용에 주는 영향</dd>
-        <dt class="m">∂<i>E</i>/∂<i class="w">w</i></dt><dd>경사. <span class="m"><i class="w">w</i></span>를 조금 키우면 비용이 얼마나 커지는지</dd>
-        <dt class="m"><i>α</i></dt><dd>학습률. 한 번에 얼마나 움직일지 (보폭)</dd>
-        <dt>에폭</dt><dd>학습 데이터 전체를 한 바퀴 다 쓴 것</dd>
-        <dt>순전파</dt><dd>입력 → 출력 방향으로 값을 계산</dd>
-        <dt>역전파</dt><dd>출력 → 입력 방향으로 경사를 계산 (연쇄법칙)</dd>
-        <dt>추론</dt><dd>학습을 끝낸 모델로 순전파만 하는 것</dd>
+        <dt class="m"><i>a</i> = <i>φ</i>(<i>z</i>)</dt><dd>활성화(activation) 값. 뉴런의 출력</dd>
+        <dt class="m"><i>φ</i></dt><dd>활성화 함수(activation function). 시그모이드(sigmoid)·tanh·ReLU</dd>
+        <dt class="m"><i>ŷ</i></dt><dd>모델이 낸 확률. 소프트맥스(softmax) 출력이라 합은 1</dd>
+        <dt class="m"><i>E</i></dt><dd>손실(loss). 교차 엔트로피(cross-entropy) <span class="m">−log <i>ŷ</i><sub>정답</sub></span>. 배치 평균은 비용(cost)이라 하며, 손실 함수·비용 함수는 흔히 같은 뜻으로 씁니다</dd>
+        <dt class="m"><i class="d">δ</i></dt><dd>오차 신호(error signal). 그 뉴런의 <span class="m"><i>z</i></span>가 손실에 주는 영향</dd>
+        <dt class="m">∂<i>E</i>/∂<i class="w">w</i></dt><dd>경사(gradient). <span class="m"><i class="w">w</i></span>를 조금 키우면 손실이 얼마나 커지는지</dd>
+        <dt class="m"><i>α</i></dt><dd>학습률(learning rate). 한 번에 얼마나 움직일지 — 보폭</dd>
+        <dt>순전파</dt><dd>forward propagation. 입력 → 출력 방향으로 값을 계산</dd>
+        <dt>역전파</dt><dd>backpropagation. 출력 → 입력 방향으로 경사를 계산. 연쇄 법칙(chain rule)을 씁니다</dd>
+        <dt>경사 하강법</dt><dd>gradient descent. 경사의 반대 방향으로 <span class="m"><i>α</i></span>만큼 가중치를 옮기는 것. 이 도구의 단계 4</dd>
+        <dt>에폭</dt><dd>epoch. 학습 데이터 전체를 한 바퀴 다 쓴 것</dd>
+        <dt>배치 · 미니배치</dt><dd>batch · mini-batch. 한 번의 갱신에 함께 쓰는 샘플 묶음</dd>
+        <dt>반복</dt><dd>iteration. 가중치를 한 번 갱신하는 것. 1 에폭 = 학습 샘플 수 ÷ 배치 크기</dd>
+        <dt>추론</dt><dd>inference. 학습을 끝낸 모델로 순전파만 하는 것</dd>
+        <dt>일반화 · 과적합</dt><dd>generalization · overfitting. 처음 보는 데이터에서의 성능, 그리고 학습 데이터에만 맞춰진 상태</dd>
+        <dt>기울기 소실</dt><dd>vanishing gradient. <span class="m"><i>φ</i>′</span>이 0에 가까워 역전파 신호가 사라지는 현상</dd>
       </dl>
-      <p class="foot">예제와 구성은 ‘뉴런과 퍼셉트론 — MLP의 동작’ 강의 슬라이드를 따릅니다.</p>
+      <p class="foot">예제와 구성은 ‘뉴런과 퍼셉트론 — MLP의 동작’ 강의 슬라이드를 따릅니다. 괄호 안은 해당 용어의 원어입니다.</p>
     </div>
   </section>
 
@@ -840,7 +849,7 @@ const DATA = [
 const FEAT = ['공부시간','집중도','식사량'];
 const CLS  = ['합격','불합격'];
 const ALPHAS = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];
-const STEP_NAMES = ['배치 선택','순전파 (Forward)','비용 계산','역전파 (Backward)','가중치 업데이트'];
+const STEP_NAMES = ['미니배치 선택','순전파 (forward)','손실 계산','역전파 (backprop)','가중치 갱신 (경사 하강법)'];
 const MAX_UNITS = 5, MAX_LAYERS = 3;
 const TARGETS = [30, 50, 100, 200, 500, 0];   // 0 = 무제한
 
@@ -1057,7 +1066,7 @@ function renderProgress(){
   }
   const accTxt = P.last && isFinite(P.last.trAcc) ? ` · 학습 정확도 ${pct(P.last.trAcc)}` : '';
   $('progTxt').textContent =
-    (T ? `에폭 ${S.epoch} / ${T}` : `에폭 ${S.epoch}`) + ` · 업데이트 ${S.updates}회` + accTxt;
+    (T ? `에폭 ${S.epoch} / ${T}` : `에폭 ${S.epoch}`) + ` · 갱신 ${S.updates}회` + accTxt;
   if (P.hitTarget && !P.converged){
     chip.className = 'readychip go';
     chip.textContent = P.rel != null && P.rel > 0.08
@@ -1308,10 +1317,10 @@ function paintNet(){
     }
   }
   const tag = $('flowTag');
-  if (fwActive){ tag.className = 'flowtag show fw'; tag.textContent = '→ Forward · 값이 앞으로'; }
-  else if (bwActive){ tag.className = 'flowtag show bw'; tag.textContent = '← Backward · 오차가 뒤로'; }
+  if (fwActive){ tag.className = 'flowtag show fw'; tag.textContent = '→ 순전파 · 값이 앞으로'; }
+  else if (bwActive){ tag.className = 'flowtag show bw'; tag.textContent = '← 역전파 · 오차가 뒤로'; }
   else if (S.phase >= 2){ tag.className = 'flowtag show'; tag.textContent = '🔒 가중치 고정 · 순전파만'; }
-  else if (S.phase === 1 && S.step === 4){ tag.className = 'flowtag show'; tag.textContent = 'Update · 가중치 갱신'; }
+  else if (S.phase === 1 && S.step === 4){ tag.className = 'flowtag show'; tag.textContent = '경사 하강법 · 가중치 갱신'; }
   else tag.className = 'flowtag';
 }
 /* 그림에 표시할 샘플 (학습 중이면 배치의 focus, 평가/추론이면 각 단계의 입력) */
@@ -1381,8 +1390,8 @@ function renderWeights(){
     }
   if (justApplied){ prevW = cloneW(S.W); prevB = cloneB(S.B); }
   $('wNote').textContent = frozen
-    ? '가중치가 고정되었습니다 — 평가·사용 중에는 바뀌지 않습니다'
-    : (S.step === 4 ? '이번 업데이트로 바뀔 양이 Δ로 표시됩니다' : '아래 숫자가 매 업데이트마다 바뀝니다');
+    ? '가중치가 고정(freeze)되었습니다 — 평가·추론 중에는 바뀌지 않습니다'
+    : (S.step === 4 ? '이번 갱신으로 바뀔 양이 Δ로 표시됩니다' : '아래 숫자가 매 갱신마다 바뀝니다');
 }
 function paintCell(el, v, prev, bump, frozen){
   if (!el) return;
@@ -1390,7 +1399,7 @@ function paintCell(el, v, prev, bump, frozen){
   vs.textContent = fmt(v, 2);
   let delta = null;
   if (!frozen && S.step === 4 && S.cur){
-    /* 업데이트 예정량을 미리 보여 줍니다 */
+    /* 이번 갱신으로 바뀔 양을 미리 보여 줍니다 */
     const id = el.id.split('-');
     if (id[0] === 'w') delta = -lr() * S.cur.g.dW[+id[1]][+id[2]][+id[3]];
     else delta = -lr() * S.cur.g.dB[+id[1]][+id[2]];
@@ -1472,7 +1481,7 @@ function renderStrip(){
   const H2 = { 0:'데이터 — 학습용과 평가용 나누기', 1:'학습에 들어가는 데이터', 2:'평가에 쓰인 데이터' };
   const HINT = { 0:'행을 클릭하면 학습용과 평가용이 바뀝니다',
                  1:'지금 신경망에 들어간 행이 강조됩니다',
-                 2:'평가용 행만 채점했습니다 — 학습용은 흐리게 두었습니다' };
+                 2:'평가용 행만 예측했습니다 — 학습용은 흐리게 두었습니다' };
   if ($('dataH2')) $('dataH2').textContent = H2[S.phase] || H2[0];
   if ($('dataHint')) $('dataHint').textContent = HINT[S.phase] || HINT[0];
   if ($('lockLine'))
@@ -1496,7 +1505,7 @@ function renderSteps(){
   const bs = batchSize();
   $('s0txt').innerHTML = S.phase === 1 && c
     ? `배치 크기 <b>${c.idxs.length}</b> — 샘플 ${c.idxs.map(i => '#' + (i+1)).join(', ')} 를 넣습니다. (에폭 ${S.epoch+1} 안에서 ${Math.floor(S.cursor/Math.max(1,bs))+1}번째 배치)`
-    : `이번 업데이트에 쓸 학습 샘플을 고릅니다. 배치 크기가 ${bs}이면 ${bs === 1 ? '한 명씩' : bs + '명씩 묶어'} 넣습니다.`;
+    : `이번 갱신에 쓸 학습 샘플을 고릅니다. 배치 크기가 ${bs}이면 ${bs === 1 ? '샘플 하나씩' : `샘플 ${bs}개씩 묶어`} 넣습니다.`;
 
   if (p && S.step >= 1){
     const s = DATA[p.i];
@@ -1521,7 +1530,7 @@ function renderSteps(){
     $('s3calc').innerHTML =
       `<span class="cap">출력층</span> <span class="m"><i class="d">δ</i></span> <span class="val">${dOut}</span>
        <span class="cap">→ 은닉층으로 되돌아가며 모든 <span class="m">∂<i>E</i>/∂<i class="w">w</i></span>가 채워집니다.</span>`;
-  } else $('s3calc').innerHTML = '<span class="cap">출력에서 생긴 오차를 입력 쪽으로 되돌려 보냅니다.</span>';
+  } else $('s3calc').innerHTML = '<span class="cap">출력에서 생긴 오차를 연쇄 법칙으로 입력 쪽까지 되돌려 보냅니다.</span>';
 
   if (c && S.step === 4){
     let big = null, bl = 0, bj = 0, bi = 0;
@@ -1536,7 +1545,7 @@ function renderSteps(){
        <span class="m">− </span><span class="val">${fmt(lr(),3)}</span><span class="m"> × </span><span class="val">${fmt(big,3)}</span>
        <span class="m"> = </span><span class="val">${fmt(S.W[bl][bj][bi] - lr()*big,3)}</span>`;
   } else if (c && S.step === 0 && c.applied){
-    $('s4calc').innerHTML = `<span class="cap">업데이트 완료. 오른쪽 표의 Δ가 방금 바뀐 양입니다.</span>`;
+    $('s4calc').innerHTML = `<span class="cap">갱신 완료. 오른쪽 표의 Δ가 방금 바뀐 양입니다.</span>`;
   } else $('s4calc').innerHTML = '<span class="cap">경사의 반대 방향으로 <span class="m"><i>α</i></span>만큼 움직입니다.</span>';
 }
 
@@ -1563,11 +1572,11 @@ function renderBatchTable(){
     S.focus = +tr.dataset.k; renderAll();
   }));
   tf.innerHTML = S.step >= 2
-    ? `<tr><td colspan="7" style="text-align:right;font-family:var(--sans)">배치 평균 비용 <span class="m"><i>E</i></span></td><td>${fmt(c.loss,3)}</td><td class="lbl-c">${pct(c.acc)}</td></tr>`
+    ? `<tr><td colspan="7" style="text-align:right;font-family:var(--sans)">배치 평균 손실 = 비용 <span class="m"><i>E</i></span></td><td>${fmt(c.loss,3)}</td><td class="lbl-c">${pct(c.acc)}</td></tr>`
     : '';
   $('bNote').textContent = c.per.length > 1
-    ? `${c.per.length}개 샘플의 경사를 평균내어 한 번 업데이트합니다`
-    : '샘플 하나의 경사로 바로 업데이트합니다';
+    ? `${c.per.length}개 샘플의 경사를 평균내어 한 번 갱신합니다 (미니배치)`
+    : '샘플 하나의 경사로 바로 갱신합니다 (SGD)';
 }
 
 /* ==================== 뉴런 들여다보기 ==================== */
@@ -1587,23 +1596,23 @@ function renderInspect(){
   if (l === 0){
     rows.push(['원래 입력값', String(c.s[i])]);
     rows.push(['정규화 <span class="m">(<i>x</i>−5)/5</span>', fmt(c.fw.A[0][i], 3)]);
-    $('inspNote').innerHTML = '입력층은 계산을 하지 않고 값을 그대로 전달합니다. 정규화만 거칩니다.';
+    $('inspNote').innerHTML = '입력층은 계산을 하지 않고 값을 그대로 전달합니다. 정규화(normalization)만 거칩니다.';
   } else {
     const prev = c.fw.A[l-1], w = S.W[l-1][i], b = S.B[l-1][i], z = c.fw.Z[l-1][i], a = c.fw.A[l][i];
     const terms = w.map((wv, k) => `<span class="val">${fmt(wv,2)}</span>×<span class="val">${fmt(prev[k],2)}</span>`).join(' + ');
     rows.push([`가중합 <span class="m"><i>z</i></span>`, `${terms} + <span class="val">${fmt(b,2)}</span> = <b>${fmt(z,3)}</b>`]);
     if (l === L){
-      rows.push([`softmax`, `<b>${fmt(a,3)}</b> — ${CLS[i]}일 확률`]);
+      rows.push([`소프트맥스`, `<b>${fmt(a,3)}</b> — ${CLS[i]}일 확률`]);
       if (c.label != null) rows.push([`정답`, CLS[c.label]]);
       if (c.d) rows.push([`<span class="m"><i class="d">δ</i> = <i>ŷ</i> − <i>y</i></span>`, `<b>${fmt(c.d[l-1][i],3)}</b>`]);
-      $('inspNote').innerHTML = '출력층은 softmax로 두 값을 확률로 바꿉니다. 두 출력의 합은 언제나 1입니다.';
+      $('inspNote').innerHTML = '출력층은 소프트맥스(softmax)로 두 값을 확률로 바꿉니다. 두 출력의 합은 언제나 1입니다.';
     } else {
       rows.push([`활성화 <span class="m"><i>a</i> = <i>φ</i>(<i>z</i>)</span>`, `<b>${fmt(a,3)}</b>`]);
       rows.push([`<span class="m"><i>φ</i>′(<i>z</i>)</span>`, fmt(ACT[S.act].d(z, a), 3) + ' <span style="color:var(--muted)">← 역전파에서 곱해지는 값</span>']);
       if (c.d) rows.push([`<span class="m"><i class="d">δ</i></span>`, `<b>${fmt(c.d[l-1][i],3)}</b>`]);
       const dv = ACT[S.act].d(z, a);
       $('inspNote').innerHTML = Math.abs(dv) < 0.05
-        ? '<span style="color:var(--warn-ink)">φ′이 거의 0입니다 — 이 뉴런으로는 오차 신호가 거의 전달되지 않아 학습이 느려집니다.</span>'
+        ? '<span style="color:var(--warn-ink)">φ′이 거의 0입니다 — 이 뉴런으로는 오차 신호가 거의 전달되지 않습니다(기울기 소실).</span>'
         : '가중합을 활성화 함수에 통과시킨 값이 다음 층으로 갑니다.';
     }
   }
@@ -1871,9 +1880,9 @@ function renderTest(){
   const te = testIdx(), res = S.testRes;
   const tb = $('ttbody');
   if (!res || !res.length){
-    tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted)">아직 채점하지 않았습니다 (평가 데이터 ${te.length}개)</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted)">아직 평가하지 않았습니다 (평가 데이터 ${te.length}개)</td></tr>`;
     $('testAccBig').textContent = '–';
-    $('testAccSub').textContent = '아직 채점하지 않았습니다';
+    $('testAccSub').textContent = '아직 평가하지 않았습니다';
     if ($('trainAccBig')){
       const t0 = evalSet(S.W, S.B, trainIdx());
       $('trainAccBig').textContent = pct(t0.acc);
@@ -1928,8 +1937,8 @@ function renderInfer(){
 function setPhase(p){
   if (p === 1 && !trainIdx().length){ flash('warn', '학습 데이터가 없습니다. 표에서 행을 눌러 나눠 주세요.'); return; }
   if (p >= 2 && !S.trained){ flash('warn', '먼저 학습을 진행해 주세요. (한 단계 → 또는 ▶ 자동 학습)'); return; }
-  if (p >= 3 && !S.testRes){ flash('warn', '먼저 평가 데이터로 채점해 주세요.'); return; }
-  if (p < 2 && S.phase >= 2){ flash('info', '학습으로 돌아갑니다. 평가 결과를 보고 모델을 고치면 평가 점수를 믿기 어려워집니다 — 실무에서는 이럴 때 검증 데이터를 씁니다.'); }
+  if (p >= 3 && !S.testRes){ flash('warn', '먼저 평가 데이터로 성능을 재 주세요.'); return; }
+  if (p < 2 && S.phase >= 2){ flash('info', '학습으로 돌아갑니다. 평가 결과를 보고 모델을 고치면 데이터 누수(data leakage)가 되어 평가 점수를 믿기 어려워집니다 — 실무에서는 이럴 때 검증(validation) 데이터를 씁니다.'); }
   stopRun();
   S.phase = p;
   document.querySelector('.wrap').dataset.tab = String(p);
@@ -1960,7 +1969,7 @@ function renderPhase(){
   $('bTestAll').disabled = $('bTestStep').disabled = $('bTestReset').disabled = S.phase < 2;
   ['inS','inF','inM'].forEach(id => { $(id).disabled = S.phase < 3; });
   $('stName').textContent = S.phase === 1 ? STEP_NAMES[S.step]
-    : (S.phase === 0 ? '데이터를 나누는 중' : (S.phase === 2 ? '평가 중 — 순전파만' : '사용 중 — 순전파만'));
+    : (S.phase === 0 ? '데이터를 나누는 중' : (S.phase === 2 ? '평가 중 — 순전파만' : '추론 중 — 순전파만'));
 }
 
 /* ==================== 전체 렌더 ==================== */
@@ -1988,7 +1997,7 @@ function renderAll(){
   const bs = batchSize(), n = trainIdx().length;
   const upd = Math.ceil(n / bs);
   $('tUpd').textContent = upd + '회';
-  $('tUpdS').textContent = `학습 ${n}개 ÷ 배치 ${bs}`;
+  $('tUpdS').textContent = `학습 ${n}개 ÷ 배치 ${bs} · 반복(iteration)`;
   $('n1').textContent = n; $('n2').textContent = bs; $('n3').textContent = upd;
   $('aVal').innerHTML = `<i>α</i> = ${lr()}`;
 
@@ -2023,7 +2032,7 @@ $('batchSel').addEventListener('change', e => {
   const before = batchSize();
   S.batch = +e.target.value;
   const after = batchSize();
-  /* 배치가 n배가 되면 에폭당 업데이트가 n배 줄어듭니다.
+  /* 배치가 n배가 되면 에폭당 갱신 횟수가 n배 줄어듭니다.
      같은 에폭 수로 비슷하게 배우려면 학습률도 n배가 되어야 합니다(선형 스케일링). */
   if (after !== before && before > 0){
     const want = lr() * (after / before);
@@ -2032,7 +2041,7 @@ $('batchSel').addEventListener('change', e => {
       if (Math.abs(Math.log(ALPHAS[i]/want)) < Math.abs(Math.log(ALPHAS[best]/want))) best = i;
     if (best !== S.ai){
       const from = lr(); S.ai = best;
-      flash('info', `배치를 ${before} → ${after}로 바꿨습니다. 에폭당 업데이트가 ${(after/before).toFixed(1)}배 줄어들어 학습률도 α ${from} → ${lr()}로 맞췄습니다. 직접 바꿔도 됩니다.`);
+      flash('info', `배치를 ${before} → ${after}로 바꿨습니다. 에폭당 갱신 횟수가 ${(after/before).toFixed(1)}배 줄어들어 학습률도 α ${from} → ${lr()}로 맞췄습니다. 직접 바꿔도 됩니다.`);
     }
   }
   S.step = 0; S.cur = null; newEpochOrder(); renderAll();
@@ -2073,7 +2082,7 @@ $('rail').addEventListener('click', e => { const b = e.target.closest('.ph'); if
 $('bTestAll').addEventListener('click', () => scoreTest(true));
 $('bTestStep').addEventListener('click', () => {
   const te = testIdx();
-  if (S.testRes && S.testRes.length >= te.length){ flash('info', '평가 데이터를 모두 채점했습니다.'); return; }
+  if (S.testRes && S.testRes.length >= te.length){ flash('info', '평가 데이터를 모두 평가했습니다.'); return; }
   scoreTest(false);
 });
 $('bTestReset').addEventListener('click', () => { S.testRes = null; S.testCursor = 0; renderAll(); });
