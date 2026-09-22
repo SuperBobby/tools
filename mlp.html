@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLP 순전파와 역전파</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#F4F6F3; --surface:#FFFFFF; --surface-2:#EDF1EC;
+  --ink:#141B18; --ink-2:#4B5752; --muted:#7F8A85;
+  --grid:#E4E8E4; --axis:#BCC5C0; --line:rgba(20,27,24,.12);
+  --w:#2A78D6; --w-ink:#1D5FB0; --w-wash:rgba(42,120,214,.10);
+  --b:#EB6834; --b-ink:#B4461A; --b-wash:rgba(235,104,52,.12);
+  --pt:#141B18; --resid:#D03B3B;
+  --pass:#2A8A5E; --pass-ink:#1C6644; --pass-wash:rgba(42,138,94,.12);
+  --fail:#8A5AB8; --fail-ink:#6B3F96; --fail-wash:rgba(138,90,184,.12);
+  --seq-lo:#6DA7EC; --seq-hi:#F8FBFF;
+  --warn-bg:#FFF4D6; --warn-ink:#7A5200;
+  --crit-bg:#FDE8E8; --crit-ink:#9E2424;
+  --ok-bg:#E3F3EA; --ok-ink:#1C6644;
+  --btn:#141B18; --btn-ink:#FFFFFF;
+  --focus:#1D5FB0;
+  --sans:"IBM Plex Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --math:"STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0E1210; --surface:#161B19; --surface-2:#1D2421;
+    --ink:#EDF2EF; --ink-2:#B5BFBA; --muted:#85908A;
+    --grid:#232A27; --axis:#3A433F; --line:rgba(237,242,239,.12);
+    --w:#3987E5; --w-ink:#86B6EF; --w-wash:rgba(57,135,229,.16);
+    --b:#D95926; --b-ink:#F29A6B; --b-wash:rgba(217,89,38,.20);
+    --pt:#EDF2EF; --resid:#E66767;
+    --pass:#3FA678; --pass-ink:#7FD3AC; --pass-wash:rgba(63,166,120,.18);
+    --fail:#A177CC; --fail-ink:#C7A7E6; --fail-wash:rgba(161,119,204,.18);
+    --seq-lo:#1C5CAB; --seq-hi:#161B19;
+    --warn-bg:#3A2E0E; --warn-ink:#FAD27A;
+    --crit-bg:#3B1A1A; --crit-ink:#F4A3A3;
+    --ok-bg:#16301F; --ok-ink:#7FD3AC;
+    --btn:#EDF2EF; --btn-ink:#0E1210;
+    --focus:#86B6EF;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0E1210; --surface:#161B19; --surface-2:#1D2421;
+  --ink:#EDF2EF; --ink-2:#B5BFBA; --muted:#85908A;
+  --grid:#232A27; --axis:#3A433F; --line:rgba(237,242,239,.12);
+  --w:#3987E5; --w-ink:#86B6EF; --w-wash:rgba(57,135,229,.16);
+  --b:#D95926; --b-ink:#F29A6B; --b-wash:rgba(217,89,38,.20);
+  --pt:#EDF2EF; --resid:#E66767;
+  --pass:#3FA678; --pass-ink:#7FD3AC; --pass-wash:rgba(63,166,120,.18);
+  --fail:#A177CC; --fail-ink:#C7A7E6; --fail-wash:rgba(161,119,204,.18);
+  --seq-lo:#1C5CAB; --seq-hi:#161B19;
+  --warn-bg:#3A2E0E; --warn-ink:#FAD27A;
+  --crit-bg:#3B1A1A; --crit-ink:#F4A3A3;
+  --ok-bg:#16301F; --ok-ink:#7FD3AC;
+  --btn:#EDF2EF; --btn-ink:#0E1210;
+  --focus:#86B6EF;
+}
+
+*{box-sizing:border-box}
+html{background:var(--ground)}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:24px;padding-block:28px 56px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:700;letter-spacing:-.01em}
+p{margin:0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---------- header ---------- */
+.top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 32px;align-items:end;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.top h1{font-size:30px;line-height:1.25;margin-top:4px}
+.lede{color:var(--ink-2);max-width:64ch;margin-top:8px}
+.model{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.model .lbl{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.eq-big{font-family:var(--math);font-size:26px;line-height:1.2;white-space:nowrap}
+
+/* ---------- math ---------- */
+.m{font-family:var(--math);font-size:1.12em;white-space:nowrap}
+.m i{font-style:italic}
+.m .up{font-style:normal}
+.m sub,.m sup{font-size:.68em;line-height:0}
+.m .w{color:var(--w-ink)}
+.m .b{color:var(--b-ink)}
+.m .d{color:var(--resid)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em;font-size:.9em;line-height:1.15}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 .2em}
+.frac>span:last-child{padding:0 .2em}
+.sum{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;margin:0 .1em}
+.sum .sg{font-size:1.45em;line-height:1}
+.sum small{font-size:.6em;font-style:italic}
+.val{font-family:var(--mono);font-size:.84em;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--surface-2);padding:1px 6px;border-radius:4px;white-space:nowrap}
+
+/* ---------- tabs ---------- */
+.wrap>.tabsec{order:99}
+.wrap[data-tab="0"]>.tabsec{order:var(--o0,99)}
+.wrap[data-tab="1"]>.tabsec{order:var(--o1,99)}
+.wrap[data-tab="2"]>.tabsec{order:var(--o2,99)}
+.wrap[data-tab="3"]>.tabsec{order:var(--o3,99)}
+.wrap[data-tab="0"]>.tabsec:not(.t0),
+.wrap[data-tab="1"]>.tabsec:not(.t1),
+.wrap[data-tab="2"]>.tabsec:not(.t2),
+.wrap[data-tab="3"]>.tabsec:not(.t3){display:none}
+.wrap>header.top{order:-3}
+.wrap>nav.rail{order:-2}
+
+/* 학습 탭에서는 데이터 표를 짧게, 평가용 행은 잠긴 것으로 보여 줍니다 */
+.wrap[data-tab="1"] .dwrap{max-height:232px}
+.wrap[data-tab="1"] .dwrap tbody tr.te-row td{
+  color:var(--muted);
+  background-image:repeating-linear-gradient(135deg,transparent 0 6px,var(--surface-2) 6px 7px);
+}
+.wrap[data-tab="1"] .dwrap tbody tr.te-row:hover td{background-color:transparent}
+.wrap[data-tab="2"] .dwrap tbody tr.tr-row td{color:var(--muted);opacity:.6}
+.lockline{font-size:12px;color:var(--b-ink);background:var(--b-wash);border-radius:6px;padding:5px 10px;display:none}
+.wrap[data-tab="1"] .lockline{display:block}
+
+/* ---------- phase rail ---------- */
+.rail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ph{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;transition:border-color .2s,box-shadow .2s,opacity .2s;min-width:0}
+.ph:disabled{cursor:not-allowed;opacity:.45}
+.ph .pn{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.ph .pt{font-size:15px;font-weight:600;line-height:1.35}
+.ph .pd{font-size:12px;color:var(--ink-2);line-height:1.45}
+.ph.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.ph.done .pn::after{content:"✓";color:var(--pass-ink);font-weight:700}
+
+/* ---------- panels, status, controls ---------- */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:12px 16px}
+.status .it{font-size:15px;font-weight:600}
+.status .it b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.stepper{display:flex;gap:4px}
+.stepper span{font-family:var(--mono);font-size:12px;width:24px;height:24px;display:grid;place-items:center;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.stepper span.on{background:var(--ink);color:var(--surface)}
+.stepper span.done{color:var(--ink)}
+.msg{font-size:13px;padding:4px 10px;border-radius:6px;display:none}
+.msg.show{display:inline-block}
+.msg.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.msg.crit{background:var(--crit-bg);color:var(--crit-ink)}
+.msg.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.msg.info{background:var(--surface-2);color:var(--ink-2)}
+
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;border-top:1px solid var(--line)}
+.group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.group .glbl{font-size:12px;color:var(--muted);margin-right:4px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;line-height:1.2}
+.btn:hover:not(:disabled){background:var(--surface-2)}
+.btn.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn.primary:hover:not(:disabled){opacity:.9}
+.btn.sq{width:34px;height:34px;padding:0;justify-content:center;font-size:18px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.alpha{font-family:var(--mono);font-size:14px;min-width:78px;text-align:center;font-variant-numeric:tabular-nums}
+.alpha i{font-family:var(--math);font-size:16px}
+select.btn{padding-right:28px}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;user-select:none}
+.switch input{appearance:none;width:36px;height:20px;border-radius:999px;background:var(--axis);position:relative;cursor:pointer;margin:0;transition:background .15s;flex:none}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:left .15s}
+.switch input:checked{background:var(--b)}
+.switch input:checked::after{left:18px}
+.spacer{flex:1}
+.units{display:inline-flex;gap:8px;flex-wrap:wrap}
+.ustep{display:inline-flex;align-items:center;gap:3px;background:var(--surface-2);border-radius:8px;padding:2px 4px}
+.ustep .ul{font-size:11px;color:var(--muted);padding:0 2px}
+.ustep b{font-family:var(--mono);font-size:13px;font-weight:500;min-width:14px;text-align:center}
+.ustep .btn.sq{width:24px;height:24px;font-size:15px;background:var(--surface)}
+.btn.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn.on:hover:not(:disabled){background:var(--btn);opacity:.9}
+
+.progrow{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.pbar{flex:1;min-width:140px;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:var(--w);border-radius:999px;transition:width .25s}
+.pbar.done i{background:var(--pass)}
+.ptxt{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.readychip{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.readychip.go{background:var(--pass-wash);color:var(--pass-ink)}
+.readychip.near{background:var(--warn-bg);color:var(--warn-ink)}
+.readychip.work{background:var(--w-wash);color:var(--w-ink)}
+.ph.ready{border-color:var(--pass);box-shadow:0 0 0 1px var(--pass)}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+.tile{padding:12px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile+.tile{border-left:1px solid var(--line)}
+.tile .tl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tile .tv{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1.3;white-space:nowrap;overflow-x:auto}
+.tile .ts{font-size:12px;color:var(--ink-2)}
+.sw{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.lockbadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
+.lockbadge.frozen{background:var(--b-wash);color:var(--b-ink)}
+.lockbadge.live{background:var(--pass-wash);color:var(--pass-ink)}
+
+/* ---------- section heads ---------- */
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.sec-h h2{font-size:18px}
+.sec-h p{font-size:13px;color:var(--muted)}
+.block{display:flex;flex-direction:column}
+
+/* ---------- network svg ---------- */
+.bench{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.chart{padding:14px 14px 10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.chart-head h2{font-size:14px;font-weight:600}
+.chart-head .note{font-size:12px;color:var(--muted)}
+.cv{position:relative;width:100%}
+.cv canvas{display:block;width:100%;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.key{display:inline-block;width:14px;height:0;border-top:2px solid}
+.key.dot{width:9px;height:9px;border:0;border-radius:50%}
+.key.dash{border-top-style:dashed}
+
+#net{display:block;width:100%;height:auto;overflow:visible}
+#net text{font-family:var(--mono);font-size:12px;fill:var(--ink);font-variant-numeric:tabular-nums}
+#net text.lbl{font-family:var(--sans);font-size:12px;fill:var(--ink-2)}
+#net text.lyr{font-family:var(--sans);font-size:11px;fill:var(--muted);letter-spacing:.04em}
+#net text.small{font-size:10px;fill:var(--muted)}
+#net text.delta{font-size:10px;fill:var(--resid)}
+.edge{fill:none;stroke-linecap:round;transition:stroke-width .25s,stroke .25s,stroke-opacity .25s}
+.edge.dashed{stroke-dasharray:3 4}
+.edge.flow{stroke-dasharray:7 9;animation:dashf .7s linear infinite}
+.edge.flowb{stroke-dasharray:7 9;animation:dashb .7s linear infinite}
+@keyframes dashf{to{stroke-dashoffset:-16}}
+@keyframes dashb{to{stroke-dashoffset:16}}
+.node{stroke:var(--axis);stroke-width:1.5;transition:fill-opacity .25s,stroke .25s,stroke-width .25s}
+.node.act{stroke:var(--ink);stroke-width:2.5}
+.nwrap{position:relative;flex:1;display:flex;align-items:center}
+.modelbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:8px 12px;background:var(--surface-2);border-radius:8px}
+.modelbar .mb-t{font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
+.modelbar .btn{background:var(--surface)}
+.modelbar .ustep{background:var(--surface)}
+.modelbar .ustep .btn.sq{background:var(--surface-2)}
+.archsum{font-family:var(--mono);font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
+.netfoot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12px;color:var(--ink-2)}
+.flowtag{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;padding:4px 14px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);opacity:0;transition:opacity .2s;pointer-events:none}
+.flowtag.show{opacity:1}
+.flowtag.fw{background:var(--w-wash);color:var(--w-ink)}
+.flowtag.bw{background:var(--crit-bg);color:var(--crit-ink)}
+
+/* ---------- steps ---------- */
+.proc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:16px;align-items:start}
+.steps{display:flex;flex-direction:column;gap:8px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 12px;transition:border-color .2s,box-shadow .2s}
+.step .no{font-family:var(--mono);font-size:13px;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2);grid-row:span 2}
+.step h3{font-size:15px;font-weight:600;line-height:1.5}
+.step .body{display:flex;flex-direction:column;gap:6px;grid-column:2;font-size:14px;color:var(--ink-2);min-width:0}
+.step .row{overflow-x:auto;padding-block:2px;color:var(--ink)}
+.step.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.step.on .no{background:var(--ink);color:var(--surface)}
+.step.skip{opacity:.4}
+.step .cap{font-size:13px;color:var(--muted)}
+.step .row .cap{margin-left:10px}
+
+/* ---------- weight grids ---------- */
+.wpanel{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.wgroup{display:flex;flex-direction:column;gap:6px}
+.wgroup h3{font-size:13px;font-weight:600;color:var(--ink-2);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.wgroup h3 .sub{font-size:11px;color:var(--muted);font-weight:400}
+.wgrid{display:grid;gap:4px;overflow-x:auto;padding-bottom:2px}
+.wc{background:var(--surface-2);border-radius:6px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:62px;transition:background .3s,box-shadow .3s}
+.wc .wv2{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;line-height:1.25}
+.wc .wd{font-family:var(--mono);font-size:10px;line-height:1.2;color:var(--muted);font-variant-numeric:tabular-nums}
+.wc .wd.up{color:var(--pass-ink)}
+.wc .wd.dn{color:var(--resid)}
+.wc.bump{background:var(--w-wash);box-shadow:0 0 0 1px var(--w)}
+.wc.head{background:transparent;color:var(--muted);font-size:11px;min-width:0;justify-content:center}
+.wc.rowh{background:transparent;color:var(--muted);font-size:11px;align-items:flex-end;justify-content:center;min-width:0;padding-right:2px}
+.wfrozen .wc{opacity:.75}
+
+/* ---------- tables ---------- */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 10px;text-align:right;white-space:nowrap}
+thead th{font-weight:500;color:var(--ink-2);border-bottom:1px solid var(--axis);font-size:13px;vertical-align:bottom}
+tbody td{font-family:var(--mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--grid)}
+tbody td:first-child,thead th:first-child{text-align:center;color:var(--muted)}
+tbody tr.on td{background:var(--w-wash)}
+tfoot td{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500;border-top:1px solid var(--axis)}
+tfoot td:first-child{text-align:center}
+td.pend{color:var(--muted)}
+td.lbl-c{font-family:var(--sans)}
+.tnote{font-size:12px;color:var(--muted);padding:8px 14px 12px}
+.ok-m{color:var(--pass-ink);font-weight:600}
+.no-m{color:var(--resid);font-weight:600}
+
+/* ---------- data table ---------- */
+.dpanel{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.splitbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.counts{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+.cpill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
+.cpill b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.dwrap{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.dwrap table{font-size:13px}
+.dwrap thead th{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom:0;box-shadow:inset 0 -1px 0 var(--axis);font-size:12px;padding:8px 10px}
+.dwrap tbody tr{cursor:pointer}
+.dwrap tbody tr:hover td{background:var(--surface-2)}
+.dwrap tbody td{padding:5px 10px}
+.dwrap tbody tr.cur td{background:var(--w-wash);box-shadow:inset 0 1px 0 var(--w),inset 0 -1px 0 var(--w)}
+.dwrap tbody tr.wrong td{background:var(--crit-bg)}
+.tag{font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);display:inline-block}
+.tag.tr{background:var(--w-wash);color:var(--w-ink)}
+.tag.te{background:var(--b-wash);color:var(--b-ink)}
+.dwrap .pass{color:var(--pass-ink);font-weight:600}
+.dwrap .fail{color:var(--fail-ink);font-weight:600}
+.dwrap tbody tr.locked{cursor:default}
+
+/* ---------- inference ---------- */
+.infer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:14px 16px}
+.sliders{display:flex;flex-direction:column;gap:12px}
+.slot{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.slot label{font-size:14px}
+.slot output{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;min-width:26px;text-align:right}
+input[type=range]{appearance:none;width:100%;height:4px;border-radius:2px;background:var(--grid);cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--ink);border:2px solid var(--surface);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--ink);border:2px solid var(--surface);cursor:pointer}
+.verdict{display:flex;flex-direction:column;gap:10px;justify-content:center}
+.verdict .vh{font-size:12px;color:var(--muted)}
+.verdict .vv{font-size:30px;font-weight:700;line-height:1.2}
+.probs{display:flex;flex-direction:column;gap:6px}
+.prow{display:grid;grid-template-columns:62px minmax(0,1fr) 54px;gap:8px;align-items:center;font-size:13px}
+.prow .pb{height:16px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.prow .pb i{display:block;height:100%;transition:width .25s}
+.prow .pv{font-family:var(--mono);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- confusion ---------- */
+.results{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:16px;padding:14px 16px;align-items:start}
+.conf{display:grid;grid-template-columns:auto auto auto;gap:3px;font-size:12px}
+.conf div{padding:8px 6px;text-align:center;border-radius:5px;background:var(--surface-2)}
+.conf .ch{background:transparent;color:var(--muted);font-size:11px;display:grid;place-items:center}
+.conf .cv2{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
+.conf .hit{background:var(--pass-wash);color:var(--pass-ink)}
+.conf .miss{background:var(--crit-bg);color:var(--crit-ink)}
+.bignum{font-family:var(--mono);font-size:34px;font-weight:500;line-height:1.15}
+
+/* ---------- notes ---------- */
+.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.note-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.note-card h2{font-size:16px}
+.note-card p{color:var(--ink-2);font-size:14px;max-width:64ch}
+.note-card.wide{grid-column:1/-1}
+.note-card.wide dl.gloss{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);column-gap:24px}
+@media (max-width:1040px){.note-card.wide dl.gloss{grid-template-columns:auto minmax(0,1fr)}}
+.note-card ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:14px;display:flex;flex-direction:column;gap:4px}
+dl.gloss{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;margin:0;font-size:14px}
+dl.gloss dt{text-align:right;white-space:nowrap}
+dl.gloss dd{margin:0;color:var(--ink-2)}
+.foot{font-size:12px;color:var(--muted)}
+
+@media (max-width: 1040px){
+  .bench,.proc,.notes,.infer,.results{grid-template-columns:minmax(0,1fr)}
+  .rail{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 640px){
+  .wrap{padding-inline:16px;padding-block:20px 40px}
+  .top{grid-template-columns:minmax(0,1fr)}
+  .model{align-items:flex-start}
+  .top h1{font-size:24px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tile:nth-child(3){border-left:0}
+  .tile:nth-child(n+3){border-top:1px solid var(--line)}
+  .rail{grid-template-columns:minmax(0,1fr)}
+  .spacer{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap" data-tab="0">
+
+  <header class="top">
+    <div>
+      <div class="eyebrow">Multi-Layer Perceptron · 학습 → 평가 → 사용</div>
+      <h1>순전파와 역전파</h1>
+      <p class="lede">공부시간·집중도·식사량으로 <strong>합격/불합격</strong>을 맞히는 <strong>다층 퍼셉트론(Multi-Layer Perceptron, MLP)</strong>입니다. 데이터를 직접 나눈 뒤, 샘플이 하나씩 들어가며 가중치(weight) <span class="m"><i class="w">w</i></span>가 갱신되는 과정을 <strong>순전파(forward propagation) → 손실(loss) → 역전파(backpropagation) → 가중치 갱신</strong> 네 단계로 따라가고, 학습이 끝나면 <strong>가중치를 고정한 채</strong> 평가(test)와 추론(inference)까지 이어집니다.</p>
+    </div>
+    <div class="model" aria-live="polite">
+      <span class="lbl">현재 모델</span>
+      <div class="eq-big" id="eqBig"></div>
+      <span class="lbl" id="paramCount"></span>
+    </div>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="진행 단계">
+    <button class="ph" type="button" data-p="0">
+      <span class="pn">단계 1</span><span class="pt">데이터 나누기</span>
+      <span class="pd">학습용과 평가용을 갈라 둡니다</span>
+    </button>
+    <button class="ph" type="button" data-p="1">
+      <span class="pn">단계 2</span><span class="pt">학습 Training</span>
+      <span class="pd">순전파 · 역전파로 가중치를 갱신합니다</span>
+    </button>
+    <button class="ph" type="button" data-p="2">
+      <span class="pn">단계 3</span><span class="pt">평가 Test</span>
+      <span class="pd">가중치 고정 · 처음 보는 데이터</span>
+    </button>
+    <button class="ph" type="button" data-p="3">
+      <span class="pn">단계 4</span><span class="pt">사용 Inference</span>
+      <span class="pd">가중치 고정 · 정답(label) 없는 새 입력</span>
+    </button>
+  </nav>
+
+  <section class="panel tabsec t1" id="secStatus" style="--o1:2" aria-label="학습 상태와 조작">
+    <div class="status">
+      <div class="it">에폭 <b id="stEpoch">0</b></div>
+      <div class="it">갱신 <b id="stIter">0</b>회</div>
+      <div class="stepper" id="stepper" aria-label="현재 단계">
+        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+      </div>
+      <div id="stName" style="font-size:14px;color:var(--ink-2)"></div>
+      <span class="lockbadge live" id="lockBadge">가중치 학습 중</span>
+      <div class="msg" id="msg" role="status"></div>
+    </div>
+    <div class="progrow">
+      <div class="pbar" id="pbar" role="progressbar" aria-label="학습 진행" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pbarFill"></i></div>
+      <span class="ptxt" id="progTxt">아직 시작하지 않았습니다</span>
+      <span class="readychip" id="readyChip">대기 중</span>
+    </div>
+    <div class="controls">
+      <div class="group">
+        <button class="btn primary" id="bStep" type="button" title="순전파 → 손실 → 역전파 → 갱신을 하나씩">한 단계 →</button>
+        <button class="btn" id="bBatch" type="button" title="배치 하나를 끝까지 처리합니다">1 배치 ⇥</button>
+        <button class="btn" id="bEpoch" type="button" title="학습 데이터를 한 바퀴 돕니다">1 에폭 전체</button>
+        <button class="btn" id="bRun" type="button">▶ 자동 학습</button>
+        <button class="btn" id="bReset" type="button" title="가중치를 초기값으로 되돌립니다 (데이터 분할은 유지)">⟲ 가중치 초기화</button>
+      </div>
+      <div class="group">
+        <span class="glbl">학습률 <span class="m"><i>α</i></span></span>
+        <button class="btn sq" id="aDown" type="button" aria-label="학습률 줄이기">−</button>
+        <span class="alpha" id="aVal"></span>
+        <button class="btn sq" id="aUp" type="button" aria-label="학습률 늘리기">+</button>
+      </div>
+      <div class="group">
+        <label class="glbl" for="batchSel">배치 크기</label>
+        <select class="btn" id="batchSel">
+          <option value="1" selected>1 — 확률적 경사 하강법 (SGD)</option>
+          <option value="4">4 — 미니배치 (mini-batch)</option>
+          <option value="8">8 — 미니배치</option>
+          <option value="16">16 — 미니배치</option>
+          <option value="0">전체 — 배치 경사 하강법</option>
+        </select>
+      </div>
+      <div class="group">
+        <label class="glbl" for="targetSel">목표 에폭</label>
+        <select class="btn" id="targetSel">
+          <option value="30">30</option>
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+          <option value="0">무제한</option>
+        </select>
+      </div>
+      <div class="group">
+        <label class="glbl" for="speed">자동 속도</label>
+        <select class="btn" id="speed">
+          <option value="1">느리게</option>
+          <option value="12" selected>보통</option>
+          <option value="60">빠르게</option>
+          <option value="300">매우 빠르게</option>
+          <option value="1500">최고 속도</option>
+        </select>
+      </div>
+      <label class="switch" for="shuffleOn"><input type="checkbox" id="shuffleOn" checked> 에폭마다 순서 섞기</label>
+    </div>
+    <div class="tiles">
+      <div class="tile"><span class="tl">학습 손실 <span class="m"><i>E</i></span></span><span class="tv" id="tLoss">–</span><span class="ts" id="tLossS">교차 엔트로피(cross-entropy) 평균</span></div>
+      <div class="tile"><span class="tl">학습 정확도</span><span class="tv" id="tAcc">–</span><span class="ts" id="tAccS">학습 데이터 기준</span></div>
+      <div class="tile"><span class="tl">평가 정확도</span><span class="tv" id="tTest">–</span><span class="ts" id="tTestS">단계 3에서 측정</span></div>
+      <div class="tile"><span class="tl">1 에폭(epoch) = 갱신 횟수</span><span class="tv" id="tUpd">–</span><span class="ts" id="tUpdS"></span></div>
+    </div>
+  </section>
+
+  <section class="bench tabsec t1 t2 t3" id="secBench" style="--o1:3;--o2:3;--o3:2">
+    <div class="panel chart">
+      <div class="chart-head">
+        <h2>신경망</h2>
+        <span class="note">선 두께 = <span class="m">|<i class="w">w</i>|</span> · 파랑 <span class="m">+</span> / 주황 <span class="m">−</span> · 노드 클릭 → 자세히</span>
+      </div>
+      <div class="modelbar" id="modelBar">
+        <span class="mb-t">모델 구조</span>
+        <div class="group">
+          <label class="glbl" for="layerSel">은닉층</label>
+          <select class="btn" id="layerSel">
+            <option value="1" selected>1개 층</option>
+            <option value="2">2개 층</option>
+            <option value="3">3개 층</option>
+          </select>
+          <span class="units" id="unitWrap"></span>
+        </div>
+        <div class="group">
+          <label class="glbl" for="actSel">활성화 함수</label>
+          <select class="btn" id="actSel">
+            <option value="sigmoid" selected>시그모이드</option>
+            <option value="tanh">tanh</option>
+            <option value="relu">ReLU</option>
+          </select>
+        </div>
+        <span class="archsum" id="archSum"></span>
+      </div>
+      <span class="lockbadge frozen" id="structLock" style="display:none">🔒 구조 고정됨 — 학습 단계에서만 바꿀 수 있습니다</span>
+      <div class="nwrap">
+        <svg id="net" viewBox="0 0 1000 470" role="img" aria-label="다층 퍼셉트론 구조도. 입력층, 은닉층, 출력층의 노드와 가중치 연결선을 보여줍니다."></svg>
+        <div class="flowtag" id="flowTag"></div>
+      </div>
+      <div class="netfoot">
+        <span><b style="font-weight:600" id="curSample">–</b></span>
+        <span class="spacer"></span>
+        <span class="legend">
+          <span><i class="key" style="border-color:var(--w)"></i>양수 가중치</span>
+          <span><i class="key" style="border-color:var(--b)"></i>음수 가중치</span>
+          <span><i class="key dot" style="background:var(--resid)"></i><span class="m"><i>δ</i></span> 오차 신호</span>
+        </span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel chart">
+        <div class="chart-head"><h2>에폭에 따른 손실</h2><span class="note">가로축: 에폭</span></div>
+        <div class="cv" id="wrapLoss"><canvas id="cvLoss" role="img" aria-label="에폭에 따른 손실 곡선"></canvas></div>
+        <div class="chart-head">
+          <div class="legend">
+            <span><i class="key" style="border-color:var(--w)"></i>학습 손실</span>
+            <span id="lgTest" style="display:none"><i class="key dash" style="border-color:var(--b)"></i>평가 손실</span>
+          </div>
+          <label class="switch" for="showTest" style="font-size:12px"><input type="checkbox" id="showTest"> 평가 손실 겹쳐 보기</label>
+        </div>
+        <p class="tnote" id="testPeekNote" style="display:none;padding:0">평가 데이터는 <strong>학습에 쓰이지 않습니다.</strong> 실무에서는 이렇게 학습 중에 들여다보는 용도로 <strong>검증(validation) 데이터</strong>를 따로 두고, 평가 데이터는 맨 마지막에 딱 한 번만 씁니다.</p>
+      </div>
+      <div class="panel chart">
+        <div class="chart-head"><h2>결정 경계 (decision boundary)</h2><span class="note">가로 공부시간 · 세로 집중도</span></div>
+        <div class="cv" id="wrapBnd"><canvas id="cvBnd" role="img" aria-label="공부시간과 집중도 평면에서 모델이 합격으로 예측하는 영역"></canvas></div>
+        <div class="legend">
+          <span><i class="key dot" style="background:var(--pass)"></i>합격 (학습)</span>
+          <span><i class="key dot" style="background:var(--fail)"></i>불합격 (학습)</span>
+          <span><i class="key dot" style="background:transparent;box-shadow:inset 0 0 0 2px var(--ink)"></i>평가 데이터</span>
+        </div>
+        <div class="slot" style="font-size:12px">
+          <label for="bndMeal">식사량 고정</label>
+          <input type="range" id="bndMeal" min="0" max="10" step="1" value="5">
+          <output id="bndMealV">5</output>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="proc tabsec t1" id="secProc" style="--o1:4">
+    <div>
+      <div class="sec-h"><h2>가중치 한 번 갱신하기</h2><p>현재 단계가 강조됩니다</p></div>
+      <div class="steps" id="steps">
+        <article class="step" data-s="0">
+          <span class="no">0</span><h3>미니배치(mini-batch) 선택</h3>
+          <div class="body">
+            <p id="s0txt">이번 갱신에 쓸 학습 샘플을 고릅니다. 배치 크기가 1이면 샘플 하나씩(확률적 경사 하강법, SGD), 크면 여러 샘플을 묶어(미니배치) 넣습니다.</p>
+            <p class="cap">아래 <strong>학습 데이터</strong> 표에서 지금 들어간 행이 강조됩니다.</p>
+          </div>
+        </article>
+        <article class="step" data-s="1">
+          <span class="no">1</span><h3>순전파 (forward propagation) — 앞으로</h3>
+          <div class="body">
+            <div class="row"><span class="m"><i>z</i><sub><i>j</i></sub> = <span class="sum"><small>i</small><span class="sg">Σ</span></span><i class="w">w</i><sub><i>ji</i></sub><i>a</i><sub><i>i</i></sub> + <i class="b">b</i><sub><i>j</i></sub></span> &nbsp;<span class="m">, &nbsp;<i>a</i><sub><i>j</i></sub> = <i>φ</i>(<i>z</i><sub><i>j</i></sub>)</span></div>
+            <div class="row" id="s1calc"><span class="cap">입력층부터 오른쪽으로 값이 흘러갑니다.</span></div>
+            <p class="cap">마지막 층은 <strong>소프트맥스(softmax)</strong>로 두 확률을 만듭니다. 합은 항상 1입니다.</p>
+          </div>
+        </article>
+        <article class="step" data-s="2">
+          <span class="no">2</span><h3>손실 계산 (loss)</h3>
+          <div class="body">
+            <div class="row"><span class="m"><i>E</i> = −log <i>ŷ</i><sub>정답</sub></span> <span class="cap">교차 엔트로피(cross-entropy) 손실</span></div>
+            <div class="row" id="s2calc"><span class="cap">예측이 정답에 가까울수록 0에 가까워집니다.</span></div>
+            <p class="cap">배치에 여러 샘플이 있으면 각자의 손실을 <strong>평균</strong>냅니다. 이 평균을 <strong>비용(cost)</strong>이라고 부르며, 강의 슬라이드의 ‘비용’이 이것입니다.</p>
+          </div>
+        </article>
+        <article class="step" data-s="3">
+          <span class="no">3</span><h3>역전파 (backpropagation) — 뒤로</h3>
+          <div class="body">
+            <div class="row"><span class="m"><i class="d">δ</i><sup>(출력)</sup> = <i>ŷ</i> − <i>y</i></span> <span class="cap">소프트맥스 + 교차 엔트로피 조합이라 이렇게 간단해집니다</span></div>
+            <div class="row"><span class="m"><i class="d">δ</i><sup>(<i>l</i>)</sup> = (<i class="w">W</i><sup>(<i>l</i>+1)</sup><sup>⊤</sup><i class="d">δ</i><sup>(<i>l</i>+1)</sup>) ⊙ <i>φ</i>′(<i>z</i><sup>(<i>l</i>)</sup>)</span></div>
+            <div class="row"><span class="m"><span class="frac"><span>∂<i>E</i></span><span>∂<i class="w">w</i><sub><i>ji</i></sub></span></span> = <i class="d">δ</i><sub><i>j</i></sub> · <i>a</i><sub><i>i</i></sub></span> <span class="cap">오차 신호 × 들어온 값 · 연쇄 법칙(chain rule)</span></div>
+            <div class="row" id="s3calc"></div>
+          </div>
+        </article>
+        <article class="step" data-s="4">
+          <span class="no">4</span><h3>가중치 갱신 — 경사 하강법 (gradient descent)</h3>
+          <div class="body">
+            <div class="row"><span class="m"><i class="w">w</i><sub><i>ji</i></sub> := <i class="w">w</i><sub><i>ji</i></sub> − <i>α</i><span class="frac"><span>∂<i>E</i></span><span>∂<i class="w">w</i><sub><i>ji</i></sub></span></span></span></div>
+            <div class="row" id="s4calc"></div>
+            <p class="cap">모든 가중치가 <strong>동시에</strong> 조금씩 움직입니다. 경사(gradient) <span class="m">∂<i>E</i>/∂<i class="w">w</i></span>가 방향을, 학습률(learning rate) <span class="m"><i>α</i></span>가 보폭을 정합니다. 그다음 단계 0으로 돌아가 다음 배치를 처리합니다.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div>
+      <div class="sec-h"><h2>가중치와 편향</h2><p id="wNote">아래 숫자가 매 갱신마다 바뀝니다</p></div>
+      <div class="panel wpanel" id="wpanel"></div>
+      <div class="sec-h" style="margin-top:16px"><h2>이번 배치</h2><p id="bNote"></p></div>
+      <div class="panel">
+        <div class="tablebox">
+          <table id="btbl">
+            <thead><tr>
+              <th>#</th><th>공부</th><th>집중</th><th>식사</th><th>정답</th>
+              <th><span class="m"><i>ŷ</i><sub>합격</sub></span></th>
+              <th><span class="m"><i>ŷ</i><sub>불합격</sub></span></th>
+              <th><span class="m"><i>E</i></span></th><th>맞음</th>
+            </tr></thead>
+            <tbody id="btbody"></tbody>
+            <tfoot id="btfoot"></tfoot>
+          </table>
+        </div>
+        <p class="tnote">행을 클릭하면 그 샘플이 신경망 그림에 표시됩니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bench tabsec t1" id="secInspect" style="--o1:5">
+    <div class="panel chart">
+      <div class="chart-head"><h2>뉴런 하나 들여다보기</h2><span class="note" id="inspName">–</span></div>
+      <div class="tablebox">
+        <table id="ntbl"><tbody id="ntbody"></tbody></table>
+      </div>
+      <p class="tnote" id="inspNote"></p>
+    </div>
+    <div class="panel chart">
+      <div class="chart-head"><h2>활성화 함수 (activation function) <span class="m"><i>φ</i></span></h2>
+        <span class="note" id="actName">시그모이드</span>
+      </div>
+      <div class="cv" id="wrapAct"><canvas id="cvAct" role="img" aria-label="활성화 함수와 그 도함수 그래프"></canvas></div>
+      <div class="legend">
+        <span><i class="key" style="border-color:var(--w)"></i><span class="m"><i>φ</i>(<i>z</i>)</span></span>
+        <span><i class="key dash" style="border-color:var(--resid)"></i><span class="m"><i>φ</i>′(<i>z</i>)</span> 역전파에 곱해지는 값</span>
+        <span><i class="key dot" style="background:var(--ink)"></i>선택한 뉴런의 <span class="m"><i>z</i></span></span>
+      </div>
+      <p class="tnote">활성화 함수는 위 <strong>신경망</strong> 그림의 ‘모델 구조’ 줄에서 바꿀 수 있고, 바꾸면 가중치가 초기화(initialization)됩니다. <span class="m"><i>φ</i>′</span>이 0에 가까운 구간에서는 역전파 신호가 거의 사라지는데, 이것을 <strong>기울기 소실(vanishing gradient)</strong>이라고 하며 깊은 신경망의 학습이 느려지는 대표적인 원인입니다.</p>
+    </div>
+  </section>
+
+  <section class="block tabsec t0 t1 t2" id="blkData" style="--o0:2;--o1:1;--o2:2">
+    <div class="sec-h">
+      <h2 id="dataH2">데이터 — 학습용과 평가용 나누기</h2>
+      <p id="dataHint">행을 클릭하면 학습용과 평가용이 바뀝니다</p>
+    </div>
+    <div class="panel dpanel">
+      <div class="splitbar">
+        <div class="group" id="splitCtl">
+          <span class="glbl">자동 분할</span>
+          <button class="btn" type="button" data-split="0.7">7 : 3</button>
+          <button class="btn" type="button" data-split="0.8">8 : 2</button>
+          <button class="btn" type="button" data-split="0.6">6 : 4</button>
+          <button class="btn" id="bShuffleSplit" type="button" title="같은 비율로 다시 무작위로 섞어 나눕니다">🎲 다시 나누기</button>
+        </div>
+        <span class="lockbadge frozen" id="splitLock" style="display:none">🔒 분할 고정됨 — 단계 1에서만 바꿀 수 있습니다</span>
+        <span class="spacer"></span>
+        <div class="counts" id="counts"></div>
+      </div>
+      <p class="lockline" id="lockLine"></p>
+      <div class="dwrap">
+        <table id="dtbl">
+          <thead><tr>
+            <th>#</th><th>공부시간</th><th>집중도</th><th>식사량</th>
+            <th>정답</th><th>구분</th><th>모델 예측</th>
+          </tr></thead>
+          <tbody id="dbody"></tbody>
+        </table>
+      </div>
+      <p class="tnote" style="padding:0">평가 데이터는 <strong>학습에 한 번도 쓰이지 않습니다.</strong> 시험 문제를 미리 보여주고 시험을 치면 점수가 부풀듯, 평가 데이터를 학습에 섞으면 성능이 실제보다 좋아 보입니다 — 이것이 <strong>데이터 누수(data leakage)</strong>입니다. 그래서 분할은 이 단계에서만 바꿀 수 있고, 학습이 시작된 뒤에는 고정됩니다. 다시 나누려면 이 단계로 돌아와야 하며 그때 가중치도 초기화됩니다.</p>
+    </div>
+  </section>
+
+  <section class="block tabsec t2" id="blkTest" style="--o2:1">
+    <div class="sec-h">
+      <h2>평가 (Test) — 가중치를 고정하고 처음 보는 데이터로</h2>
+    </div>
+    <div class="panel">
+      <div class="controls" style="border-top:0">
+        <div class="group">
+          <button class="btn primary" id="bTestAll" type="button">평가 데이터 전체 평가</button>
+          <button class="btn" id="bTestStep" type="button">한 샘플씩 평가 →</button>
+          <button class="btn" id="bTestReset" type="button">⟲ 결과 지우기</button>
+        </div>
+        <span class="spacer"></span>
+        <span class="lockbadge frozen">🔒 가중치 고정(freeze) · 역전파 없음</span>
+      </div>
+      <div class="results">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <span class="tl" style="font-size:12px;color:var(--muted)">평가 정확도 <span style="color:var(--ink-2)">(처음 보는 데이터)</span></span>
+            <div class="bignum" id="testAccBig">–</div>
+            <div class="ts" style="font-size:12px;color:var(--ink-2)" id="testAccSub">아직 평가하지 않았습니다</div>
+          </div>
+          <div>
+            <span class="tl" style="font-size:12px;color:var(--muted)">학습 정확도 <span style="color:var(--ink-2)">(외운 문제)</span></span>
+            <div class="bignum" id="trainAccBig" style="font-size:24px;color:var(--ink-2)">–</div>
+            <div class="ts" style="font-size:12px;color:var(--ink-2)" id="gapNote"></div>
+          </div>
+          <div class="conf" id="conf"></div>
+          <p class="foot">세로: 실제 정답 · 가로: 모델 예측</p>
+        </div>
+        <div class="tablebox">
+          <table id="ttbl">
+            <thead><tr>
+              <th>#</th><th>공부</th><th>집중</th><th>식사</th><th>정답</th>
+              <th><span class="m"><i>ŷ</i><sub>합격</sub></span></th><th>예측</th><th>결과</th>
+            </tr></thead>
+            <tbody id="ttbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="tnote">평가 중에는 <span class="m"><i class="w">w</i></span>와 <span class="m"><i class="b">b</i></span>가 <strong>조금도 바뀌지 않습니다.</strong> 순전파만 계산하고 역전파와 가중치 갱신은 건너뜁니다. 위 <strong>가중치와 편향</strong> 표의 Δ가 모두 멈춘 것을 확인해 보세요.</p>
+    </div>
+  </section>
+
+  <section class="block tabsec t3" id="blkInfer" style="--o3:1">
+    <div class="sec-h">
+      <h2>실제 사용 (Inference) — 정답이 없는 새 입력</h2>
+    </div>
+    <div class="panel">
+      <div class="infer">
+        <div class="sliders">
+          <div class="slot"><label for="inS">공부시간</label><input type="range" id="inS" min="0" max="10" step="1" value="7"><output id="inSV">7</output></div>
+          <div class="slot"><label for="inF">집중도</label><input type="range" id="inF" min="0" max="10" step="1" value="6"><output id="inFV">6</output></div>
+          <div class="slot"><label for="inM">식사량</label><input type="range" id="inM" min="0" max="10" step="1" value="5"><output id="inMV">5</output></div>
+          <p class="foot" id="inOrigin"></p>
+        </div>
+        <div class="verdict">
+          <span class="vh">모델의 예측</span>
+          <span class="vv" id="inVerdict">–</span>
+          <div class="probs">
+            <div class="prow"><span>합격</span><span class="pb"><i id="inBarP" style="background:var(--pass);width:0%"></i></span><span class="pv" id="inPP">–</span></div>
+            <div class="prow"><span>불합격</span><span class="pb"><i id="inBarF" style="background:var(--fail);width:0%"></i></span><span class="pv" id="inPF">–</span></div>
+          </div>
+          <span class="lockbadge frozen" style="align-self:flex-start">🔒 학습 때 찾은 가중치 그대로</span>
+        </div>
+      </div>
+      <p class="tnote">슬라이더를 움직이면 순전파가 다시 계산되어 확률이 바뀝니다. 하지만 <strong>가중치는 움직이지 않습니다.</strong> 실제 서비스에서 모델이 하는 일, 곧 <strong>추론(inference)</strong>이 바로 이것입니다 — 고정된 가중치로 순전파 한 번.</p>
+    </div>
+  </section>
+
+  <section class="block tabsec t1" id="secLr" style="--o1:6">
+    <div class="sec-h"><h2>학습률(learning rate) <span class="m"><i>α</i></span>는 보폭입니다</h2><p>같은 초기 가중치로 세 가지 학습률을 각각 돌려 비교합니다</p></div>
+    <div class="panel chart">
+      <div class="chart-head">
+        <div class="group">
+          <button class="btn primary" id="bLrRun" type="button">60 에폭 비교 실행</button>
+          <button class="btn" id="bLrClear" type="button">지우기</button>
+        </div>
+        <span class="note">세로축 로그 눈금 · 현재 배치 크기·활성화 함수·초기 가중치를 그대로 사용합니다</span>
+      </div>
+      <div class="cv" id="wrapLr"><canvas id="cvLr" role="img" aria-label="세 가지 학습률의 손실 곡선 비교"></canvas></div>
+      <div class="legend" id="lrLegend"></div>
+      <p class="tnote"><strong>너무 작으면</strong> 방향은 맞지만 거의 제자리입니다 — 수렴(convergence)이 한없이 느려집니다. <strong>너무 크면</strong> 골짜기를 뛰어넘어 손실이 튀거나 아예 주저앉는 <strong>발산(divergence)</strong>이 일어납니다. 적당한 값에서만 손실이 꾸준히 내려갑니다. 갱신 식 <span class="m"><i class="w">w</i> := <i class="w">w</i> − <i>α</i>·∂<i>E</i>/∂<i class="w">w</i></span>에서 경사는 <em>방향</em>, <span class="m"><i>α</i></span>는 <em>보폭</em>을 정합니다.</p>
+    </div>
+  </section>
+
+  <section class="notes tabsec t0" id="secNotesData" style="--o0:3">
+    <div class="panel note-card">
+      <h2>이 도구를 쓰는 순서</h2>
+      <p>위의 네 단계를 차례로 누르며 진행합니다. 각 단계에서 가장 중요한 내용이 화면 맨 위에 옵니다.</p>
+      <ul>
+        <li><strong>1 데이터 나누기</strong> — 아래 표에서 학습용과 평가용을 가릅니다. 지금 이 화면입니다.</li>
+        <li><strong>2 학습</strong> — 학습용만 신경망에 넣어 가중치를 갱신합니다.</li>
+        <li><strong>3 평가</strong> — 가중치를 고정하고, 한 번도 보지 않은 평가용으로 성능을 잽니다.</li>
+        <li><strong>4 사용</strong> — 정답이 없는 새 입력으로 추론(inference)합니다.</li>
+      </ul>
+      <p>먼저 분할 비율만 정하고 <strong>2 학습</strong>으로 넘어가면 됩니다. 표의 행을 클릭해 직접 나눠도 됩니다.</p>
+    </div>
+    <div class="panel note-card">
+      <h2>왜 학습·평가를 나눌까</h2>
+      <p>학습 데이터에서의 정확도는 <strong>외운 문제를 다시 푼 점수</strong>에 가깝습니다. 모델이 진짜 규칙을 배웠는지 알려면 <strong>한 번도 보지 않은 데이터</strong>로 재야 합니다.</p>
+      <p>학습 손실은 계속 내려가는데 평가 성능이 더는 좋아지지 않거나 나빠지면 <strong>과적합(overfitting)</strong>입니다. 반대로 처음 보는 데이터에서도 잘 맞히는 능력을 <strong>일반화(generalization)</strong>라고 합니다.</p>
+      <p>평가 결과를 보고 학습률이나 층 구조를 고치기 시작하면, 평가 데이터가 사실상 학습에 쓰인 셈이 됩니다. 이것을 <strong>데이터 누수(data leakage)</strong>라고 합니다. 그래서 실무에서는 <strong>학습(train) / 검증(validation) / 평가(test)</strong> 세 벌로 나눕니다.</p>
+    </div>
+  </section>
+
+  <section class="notes tabsec t1" id="secNotesTrain" style="--o1:7">
+    <div class="panel note-card">
+      <h2>에폭 · 배치 · 반복</h2>
+      <p>학습 데이터가 <b id="n1">36</b>개, 배치 크기가 <b id="n2">1</b>이면 <strong>1 에폭 = <b id="n3">36</b>번의 가중치 갱신</strong>입니다. 가중치를 한 번 갱신하는 것을 <strong>반복(iteration)</strong>이라고 부릅니다. 배치 크기를 키우면 한 에폭 안의 반복 횟수가 줄어들어 같은 에폭에서도 덜 움직입니다. 대신 여러 샘플의 경사를 평균내므로 방향이 덜 흔들립니다.</p>
+      <ul>
+        <li><strong>배치 크기 1 — 확률적 경사 하강법(SGD, Stochastic Gradient Descent)</strong>. 샘플 하나마다 갱신합니다. 빠르게 움직이지만 손실 곡선이 지그재그입니다.</li>
+        <li><strong>미니배치(mini-batch)</strong> — 4~16개씩 경사를 평균냅니다. 실전에서 가장 많이 쓰는 방식입니다.</li>
+        <li><strong>전체 배치 — 배치 경사 하강법(batch gradient descent)</strong>. 한 에폭에 딱 한 번 갱신합니다. 가장 매끄럽지만 가장 느립니다.</li>
+      </ul>
+      <p><strong>배치를 키우면 학습률도 같이 키워야 합니다.</strong> 배치가 4배가 되면 에폭당 갱신 횟수가 4배 줄어드니, 같은 에폭 수로 비슷하게 배우려면 <span class="m"><i>α</i></span>도 약 4배가 되어야 합니다. 이를 <strong>선형 스케일링 법칙(linear scaling rule)</strong>이라고 합니다. 이 도구는 배치를 바꿀 때 <span class="m"><i>α</i></span>를 그 비율로 자동으로 맞춰 줍니다 — 물론 직접 다시 바꿔도 됩니다.</p>
+      <p>같은 데이터를 여러 에폭 반복해서 보는 이유는, 한 번 봐서는 가중치가 조금밖에 못 움직이기 때문입니다.</p>
+    </div>
+    <div class="panel note-card">
+      <h2>이 그림에서 눈여겨볼 것</h2>
+      <ul>
+        <li><strong>식사량 가중치</strong>는 거의 자라지 않습니다. 합격 여부와 상관이 없는 <strong>특성(feature)</strong>이라 경사가 서로 상쇄되기 때문입니다. 신경망이 <em>무관한 특성을 스스로 줄이는</em> 모습입니다.</li>
+        <li><strong>편향(bias) <span class="m"><i class="b">b</i></span></strong>는 입력이 모두 0이어도 살아 있는 값입니다. 결정 경계를 원점에서 밀어내는 역할을 합니다. 그림의 점선 연결선이 편향입니다.</li>
+        <li><strong>활성화 함수가 없다면</strong> 층을 아무리 쌓아도 결국 직선 하나입니다 — 선형 변환을 겹쳐도 선형이기 때문입니다. 곡선 경계는 <span class="m"><i>φ</i></span>의 <strong>비선형성(non-linearity)</strong> 덕분에 생깁니다.</li>
+        <li><strong>입력 정규화(input normalization)</strong> — 0~10 값을 <span class="m">(<i>x</i>−5)/5</span>로 바꿔 −1~1 범위에 넣습니다. 스케일이 제각각이면 어떤 가중치는 너무 크게, 어떤 것은 너무 작게 움직입니다.</li>
+        <li><strong>가중치 초기화(weight initialization)는 무작위</strong>로 합니다. 전부 0으로 두면 은닉 뉴런들이 완전히 똑같이 움직여 서로 다른 특징을 배우지 못합니다(대칭성 문제).</li>
+      </ul>
+    </div>
+    <div class="panel note-card wide">
+      <h2>기호와 용어</h2>
+      <dl class="gloss">
+        <dt class="m"><i>x</i></dt><dd>입력값. 여기서는 특성(feature) 셋 — 공부시간·집중도·식사량</dd>
+        <dt class="m"><i>y</i></dt><dd>정답(label). 합격 = (1, 0), 불합격 = (0, 1) 같은 원-핫(one-hot) 표현</dd>
+        <dt class="m"><i class="w">w</i><sub><i>ji</i></sub></dt><dd>가중치(weight). 앞 층 <span class="m"><i>i</i></span>번 뉴런이 뒤 층 <span class="m"><i>j</i></span>번 뉴런에 주는 영향</dd>
+        <dt class="m"><i class="b">b</i><sub><i>j</i></sub></dt><dd>편향(bias). 입력과 무관하게 더해지는 값</dd>
+        <dt class="m"><i>z</i></dt><dd>가중합 <span class="m">Σ<i class="w">w</i><i>a</i> + <i class="b">b</i></span></dd>
+        <dt class="m"><i>a</i> = <i>φ</i>(<i>z</i>)</dt><dd>활성화(activation) 값. 뉴런의 출력</dd>
+        <dt class="m"><i>φ</i></dt><dd>활성화 함수(activation function). 시그모이드(sigmoid)·tanh·ReLU</dd>
+        <dt class="m"><i>ŷ</i></dt><dd>모델이 낸 확률. 소프트맥스(softmax) 출력이라 합은 1</dd>
+        <dt class="m"><i>E</i></dt><dd>손실(loss). 교차 엔트로피(cross-entropy) <span class="m">−log <i>ŷ</i><sub>정답</sub></span>. 배치 평균은 비용(cost)이라 하며, 손실 함수·비용 함수는 흔히 같은 뜻으로 씁니다</dd>
+        <dt class="m"><i class="d">δ</i></dt><dd>오차 신호(error signal). 그 뉴런의 <span class="m"><i>z</i></span>가 손실에 주는 영향</dd>
+        <dt class="m">∂<i>E</i>/∂<i class="w">w</i></dt><dd>경사(gradient). <span class="m"><i class="w">w</i></span>를 조금 키우면 손실이 얼마나 커지는지</dd>
+        <dt class="m"><i>α</i></dt><dd>학습률(learning rate). 한 번에 얼마나 움직일지 — 보폭</dd>
+        <dt>순전파</dt><dd>forward propagation. 입력 → 출력 방향으로 값을 계산</dd>
+        <dt>역전파</dt><dd>backpropagation. 출력 → 입력 방향으로 경사를 계산. 연쇄 법칙(chain rule)을 씁니다</dd>
+        <dt>경사 하강법</dt><dd>gradient descent. 경사의 반대 방향으로 <span class="m"><i>α</i></span>만큼 가중치를 옮기는 것. 이 도구의 단계 4</dd>
+        <dt>에폭</dt><dd>epoch. 학습 데이터 전체를 한 바퀴 다 쓴 것</dd>
+        <dt>배치 · 미니배치</dt><dd>batch · mini-batch. 한 번의 갱신에 함께 쓰는 샘플 묶음</dd>
+        <dt>반복</dt><dd>iteration. 가중치를 한 번 갱신하는 것. 1 에폭 = 학습 샘플 수 ÷ 배치 크기</dd>
+        <dt>추론</dt><dd>inference. 학습을 끝낸 모델로 순전파만 하는 것</dd>
+        <dt>일반화 · 과적합</dt><dd>generalization · overfitting. 처음 보는 데이터에서의 성능, 그리고 학습 데이터에만 맞춰진 상태</dd>
+        <dt>기울기 소실</dt><dd>vanishing gradient. <span class="m"><i>φ</i>′</span>이 0에 가까워 역전파 신호가 사라지는 현상</dd>
+      </dl>
+      <p class="foot">예제와 구성은 ‘뉴런과 퍼셉트론 — MLP의 동작’ 강의 슬라이드를 따릅니다. 괄호 안은 해당 용어의 원어입니다.</p>
+    </div>
+  </section>
+
+</div>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ==================== 데이터 ==================== */
+/* [공부시간, 집중도, 식사량, 정답]  정답 0 = 합격, 1 = 불합격
+   기준선: 0.62·공부 + 0.52·집중 > 6.2 → 합격 (경계에서 최소 0.8 이상 떨어뜨렸습니다).
+   식사량은 합격 25명과 불합격 25명이 똑같은 값 분포를 갖도록 배치해 완전히 무관하게 만들었습니다.
+   앞의 네 샘플 (9,4,3) (5,1,4) (10,5,1) (1,1,5)는 강의 슬라이드에 나온 예시입니다. */
+const DATA = [
+  [9,4,3,0],[5,1,4,1],[10,5,1,0],[1,1,5,1],[8,7,6,0],
+  [2,6,9,1],[5,9,7,0],[4,4,2,1],[9,10,6,0],[1,9,7,1],
+  [10,8,1,0],[1,3,6,1],[6,7,10,0],[3,1,5,1],[10,2,10,0],
+  [6,3,2,1],[7,9,4,0],[7,1,1,1],[3,10,2,0],[2,4,4,1],
+  [8,5,5,0],[2,2,3,1],[7,6,8,0],[1,7,8,1],[9,6,2,0],
+  [4,2,6,1],[6,10,10,0],[3,3,4,1],[9,7,2,0],[1,5,10,1],
+  [8,4,8,0],[3,5,6,1],[10,6,6,0],[1,8,2,1],[8,8,9,0],
+  [1,6,8,1],[8,6,3,0],[5,3,10,1],[10,3,4,0],[3,2,9,1],
+  [7,8,4,0],[3,6,10,1],[10,4,9,0],[3,4,3,1],[4,10,5,0],
+  [5,2,1,1],[9,8,7,0],[2,5,8,1],[5,10,8,0],[2,3,7,1]
+];
+const FEAT = ['공부시간','집중도','식사량'];
+const CLS  = ['합격','불합격'];
+const ALPHAS = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];
+const STEP_NAMES = ['미니배치 선택','순전파 (forward)','손실 계산','역전파 (backprop)','가중치 갱신 (경사 하강법)'];
+const MAX_UNITS = 5, MAX_LAYERS = 3;   /* 목표 에폭 선택지는 위 HTML 의 targetSel 에 있습니다 */
+
+const ACT = {
+  sigmoid:{ name:'시그모이드', f:z=>1/(1+Math.exp(-z)), d:(z,a)=>a*(1-a), tex:'1/(1+e^-z)', lo:-6, hi:6, ylo:-0.1, yhi:1.1 },
+  tanh:   { name:'tanh',       f:z=>Math.tanh(z),       d:(z,a)=>1-a*a,   tex:'tanh(z)',   lo:-3, hi:3, ylo:-1.2, yhi:1.2 },
+  relu:   { name:'ReLU',       f:z=>z>0?z:0,            d:(z)=>z>0?1:0,   tex:'max(0, z)', lo:-3, hi:3, ylo:-0.4, yhi:3.2 }
+};
+
+/* ==================== 상태 ==================== */
+const S = {
+  phase: 0,
+  hidden: [3], arch: [3,3,2],
+  act: 'sigmoid', seed: 7,
+  W: null, B: null, W0: null, B0: null,
+  ai: 3, batch: 1, shuffle: true, speed: 12, targetEp: 100,
+  split: null,                 // 0 = 학습, 1 = 평가
+  order: [], cursor: 0,
+  epoch: 0, updates: 0, step: 0,
+  cur: null, focus: 0,
+  hist: [], trained: false,
+  running: false, raf: 0, acc: 0, diverged: false,
+  showTest: false,
+  testRes: null, testCursor: 0,
+  inspect: { l:1, i:0 },
+  lrExp: null, bndMeal: 5,
+  infer: [7,6,5]
+};
+
+/* ==================== 수학 ==================== */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const norm = v => (v - 5) / 5;                       // 0~10 → −1~1
+const nx = s => [norm(s[0]), norm(s[1]), norm(s[2])];
+
+function initNet(){
+  const rnd = mulberry32(S.seed), W = [], B = [];
+  for (let l = 1; l < S.arch.length; l++){
+    const fi = S.arch[l-1], fo = S.arch[l], r = Math.sqrt(6/(fi+fo)), w = [];
+    for (let j = 0; j < fo; j++){ const row = []; for (let i = 0; i < fi; i++) row.push((rnd()*2-1)*r); w.push(row); }
+    W.push(w); B.push(new Array(fo).fill(0));
+  }
+  return { W, B };
+}
+const cloneW = W => W.map(m => m.map(r => r.slice()));
+const cloneB = B => B.map(r => r.slice());
+
+function forward(W, B, x){
+  const A = [x], Z = [], f = ACT[S.act].f;
+  for (let l = 0; l < W.length; l++){
+    const last = l === W.length - 1, prev = A[l], z = [], a = [];
+    for (let j = 0; j < W[l].length; j++){
+      let s = B[l][j];
+      for (let i = 0; i < prev.length; i++) s += W[l][j][i] * prev[i];
+      z.push(s);
+    }
+    if (last){
+      const mx = Math.max(...z); let sum = 0;
+      const e = z.map(v => { const t = Math.exp(v - mx); sum += t; return t; });
+      for (const t of e) a.push(t / sum);
+    } else for (const v of z) a.push(f(v));
+    Z.push(z); A.push(a);
+  }
+  return { A, Z };
+}
+const ceLoss = (yh, k) => -Math.log(Math.max(yh[k], 1e-12));
+
+function backward(W, fw, k){
+  const L = W.length, d = new Array(L), D = ACT[S.act].d;
+  const out = fw.A[L].slice(); out[k] -= 1;            // softmax + CE → δ = ŷ − y
+  d[L-1] = out;
+  for (let l = L-2; l >= 0; l--){
+    const cur = [];
+    for (let i = 0; i < W[l].length; i++){
+      let s = 0;
+      for (let j = 0; j < W[l+1].length; j++) s += W[l+1][j][i] * d[l+1][j];
+      cur.push(s * D(fw.Z[l][i], fw.A[l+1][i]));
+    }
+    d[l] = cur;
+  }
+  return d;
+}
+const zeroG = W => ({ dW: W.map(m => m.map(r => r.map(() => 0))), dB: W.map(m => m.map(() => 0)) });
+
+function runBatch(W, B, idxs){
+  const g = zeroG(W), per = []; let loss = 0, correct = 0;
+  for (const i of idxs){
+    const s = DATA[i], fw = forward(W, B, nx(s)), k = s[3], d = backward(W, fw, k);
+    const yh = fw.A[W.length], ok = (yh[0] >= yh[1] ? 0 : 1) === k;
+    loss += ceLoss(yh, k); if (ok) correct++;
+    for (let l = 0; l < W.length; l++)
+      for (let j = 0; j < W[l].length; j++){
+        g.dB[l][j] += d[l][j];
+        for (let ii = 0; ii < W[l][j].length; ii++) g.dW[l][j][ii] += d[l][j] * fw.A[l][ii];
+      }
+    per.push({ i, fw, d, yh, loss: ceLoss(yh, k), ok });
+  }
+  const n = idxs.length;
+  for (let l = 0; l < W.length; l++)
+    for (let j = 0; j < W[l].length; j++){
+      g.dB[l][j] /= n;
+      for (let ii = 0; ii < W[l][j].length; ii++) g.dW[l][j][ii] /= n;
+    }
+  return { g, per, loss: loss/n, acc: correct/n, idxs };
+}
+function applyG(W, B, g, lr){
+  for (let l = 0; l < W.length; l++)
+    for (let j = 0; j < W[l].length; j++){
+      B[l][j] -= lr * g.dB[l][j];
+      for (let i = 0; i < W[l][j].length; i++) W[l][j][i] -= lr * g.dW[l][j][i];
+    }
+}
+function evalSet(W, B, idxs){
+  if (!idxs.length) return { loss: NaN, acc: NaN, n: 0 };
+  let loss = 0, c = 0;
+  for (const i of idxs){
+    const s = DATA[i], yh = forward(W, B, nx(s)).A[W.length];
+    loss += ceLoss(yh, s[3]); if ((yh[0] >= yh[1] ? 0 : 1) === s[3]) c++;
+  }
+  return { loss: loss/idxs.length, acc: c/idxs.length, n: idxs.length };
+}
+const trainIdx = () => DATA.map((_, i) => i).filter(i => S.split[i] === 0);
+/* 평가 데이터를 남김없이 다 써야 '평가를 마쳤다'고 봅니다 */
+const testDone = () => !!S.testRes && S.testRes.length >= testIdx().length && testIdx().length > 0;
+const testIdx  = () => DATA.map((_, i) => i).filter(i => S.split[i] === 1);
+const lr = () => ALPHAS[S.ai];
+const batchSize = () => S.batch === 0 ? Math.max(1, trainIdx().length) : S.batch;
+
+/* ==================== 서식 ==================== */
+function fmt(v, d = 3){
+  if (!isFinite(v)) return v > 0 ? '∞' : '−∞';
+  let s = Math.abs(v) >= 1e4 ? v.toExponential(1) : v.toFixed(d);
+  if (s[0] === '-') s = /^-0\.?0*$/.test(s) ? s.slice(1) : '−' + s.slice(1);
+  return s;
+}
+const pct = v => isFinite(v) ? Math.round(v*100) + '%' : '–';
+const signed = (v, d = 3) => (v >= 0 ? '+' : '−') + fmt(Math.abs(v), d);
+
+let msgTimer = 0;
+function flash(kind, text, sticky){
+  const el = $('msg'); el.className = 'msg show ' + kind; el.textContent = text;
+  clearTimeout(msgTimer); if (!sticky) msgTimer = setTimeout(() => { $('msg').className = 'msg'; }, 5200);
+}
+const clearMsg = () => { $('msg').className = 'msg'; };
+
+/* ==================== 분할 ==================== */
+function autoSplit(ratio, seedShift){
+  /* 클래스별로 같은 비율을 유지해 한쪽에 정답이 쏠리지 않게 합니다. */
+  const rnd = mulberry32(S.seed * 977 + (seedShift|0) * 31 + 5);
+  const split = new Array(DATA.length).fill(1);
+  for (const k of [0,1]){
+    const ids = DATA.map((s,i) => [s,i]).filter(([s]) => s[3] === k).map(([,i]) => i);
+    for (let i = ids.length-1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [ids[i],ids[j]] = [ids[j],ids[i]]; }
+    const nTr = Math.max(1, Math.min(ids.length-1, Math.round(ids.length*ratio)));
+    ids.slice(0, nTr).forEach(i => split[i] = 0);
+  }
+  S.split = split;
+  splitPreset = ratio;
+}
+let splitSeq = 0, splitRatio = 0.7, splitPreset = 0.7;
+/* 분할은 '데이터 나누기' 단계에서만 바꿀 수 있습니다. 학습이 시작된 뒤 데이터를
+   갈아끼우면 그때까지 배운 가중치가 다른 데이터에서 나온 것이 되어 버립니다. */
+function canSplit(){
+  if (S.phase === 0) return true;
+  flash('info', '분할은 “데이터 나누기” 단계에서만 바꿀 수 있습니다. 바꾸려면 단계 1로 돌아가 주세요.');
+  return false;
+}
+
+/* ==================== 은닉층 구성 ==================== */
+function applyHidden(){ S.arch = [3].concat(S.hidden, [2]); }
+function buildUnitControls(){
+  const host = $('unitWrap'); host.textContent = '';
+  S.hidden.forEach((n, i) => {
+    const w = document.createElement('span');
+    w.className = 'ustep';
+    w.innerHTML =
+      `<span class="ul">${i+1}층</span>
+       <button class="btn sq" type="button" data-u="${i}" data-d="-1" aria-label="${i+1}번째 은닉층 유닛 줄이기">−</button>
+       <b>${n}</b>
+       <button class="btn sq" type="button" data-u="${i}" data-d="1" aria-label="${i+1}번째 은닉층 유닛 늘리기">+</button>`;
+    host.appendChild(w);
+  });
+  host.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    if (S.phase !== 1 && S.phase !== 0){ flash('info', '평가·사용 단계에서는 구조를 바꿀 수 없습니다.'); return; }
+    const i = +b.dataset.u, d = +b.dataset.d, next = S.hidden[i] + d;
+    if (next < 1 || next > MAX_UNITS){
+      flash('info', `은닉층 유닛은 1~${MAX_UNITS}개까지 설정할 수 있습니다.`); return;
+    }
+    S.hidden[i] = next; applyHidden(); resetTraining(true);
+    flash('info', `은닉층을 ${S.hidden.join('–')} 구성으로 바꾸고 가중치를 초기화했습니다.`);
+  }));
+  host.querySelectorAll('button').forEach(b => { b.disabled = S.phase > 1; });   /* renderPhase 에서 다시 확인합니다 */
+}
+
+/* ==================== 학습 진행 ==================== */
+/* 목표 에폭까지의 진행률과, 손실이 더 줄지 않는지(수렴)를 함께 봅니다. */
+function progress(){
+  const h = S.hist, T = S.targetEp;
+  const last = h.length ? h[h.length-1] : null;
+  const epPct = T ? Math.min(1, S.epoch / T) : 0;
+  let rel = null, converged = false;
+  const back = Math.min(h.length - 1, 15);
+  if (last && back >= 8){
+    const prev = h[h.length-1-back];
+    if (isFinite(prev.trLoss) && prev.trLoss > 1e-9)
+      rel = (prev.trLoss - last.trLoss) / prev.trLoss;
+    converged = last.trAcc >= 1 && rel != null && rel < 0.02;
+  }
+  const hitTarget = T > 0 && S.epoch >= T;
+  return { epPct, rel, converged, hitTarget, last,
+           ready: converged || hitTarget,
+           near: !!last && last.trAcc >= 1 && !converged };
+}
+function renderProgress(){
+  const P = progress(), T = S.targetEp, chip = $('readyChip'), bar = $('pbar');
+  const pctDone = T ? P.epPct : (P.last && isFinite(P.last.trAcc) ? P.last.trAcc : 0);
+  $('pbarFill').style.width = (pctDone * 100).toFixed(1) + '%';
+  bar.classList.toggle('done', P.ready);
+  bar.setAttribute('aria-valuenow', Math.round(pctDone * 100));
+
+  if (!S.trained){
+    $('progTxt').textContent = T ? `에폭 0 / ${T}` : '에폭 0';
+    chip.className = 'readychip'; chip.textContent = '대기 중';
+    return;
+  }
+  const accTxt = P.last && isFinite(P.last.trAcc) ? ` · 학습 정확도 ${pct(P.last.trAcc)}` : '';
+  $('progTxt').textContent =
+    (T ? `에폭 ${S.epoch} / ${T}` : `에폭 ${S.epoch}`) + ` · 갱신 ${S.updates}회` + accTxt;
+  if (P.hitTarget && !P.converged){
+    chip.className = 'readychip go';
+    chip.textContent = P.rel != null && P.rel > 0.08
+      ? '목표 도달 · 손실 아직 감소 중'
+      : '목표 에폭 도달 — 평가로';
+  } else if (P.converged){
+    chip.className = 'readychip go'; chip.textContent = '손실이 거의 안 줄어듭니다 — 평가로';
+  } else if (P.near){
+    chip.className = 'readychip near'; chip.textContent = '정확도는 100% · 손실 더 줄이는 중';
+  } else {
+    chip.className = 'readychip work';
+    chip.textContent = P.rel != null && P.rel < 0.005 ? '거의 못 배우고 있습니다' : '학습 중';
+  }
+}
+
+/* ==================== 학습 흐름 ==================== */
+function newEpochOrder(){
+  const tr = trainIdx();
+  if (S.shuffle){
+    const rnd = mulberry32(S.seed * 31 + S.epoch * 7919 + 13);
+    for (let i = tr.length-1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [tr[i],tr[j]] = [tr[j],tr[i]]; }
+  }
+  S.order = tr; S.cursor = 0;
+}
+function resetTraining(keepSplit){
+  stopRun();
+  const n = initNet();
+  S.W = n.W; S.B = n.B; S.W0 = cloneW(n.W); S.B0 = cloneB(n.B);
+  S.epoch = 0; S.updates = 0; S.step = 0; S.cur = null; S.focus = 0;
+  S.hist = []; S.trained = false; S.diverged = false;
+  S.testRes = null; S.testCursor = 0;
+  if (!keepSplit){ autoSplit(splitRatio, splitSeq); }
+  newEpochOrder();
+  S.inspect = { l:1, i:0 };
+  buildNet(); buildWeights(); buildStrip(); buildUnitControls();
+  recordHist();
+  renderAll();
+}
+function pickBatch(){
+  if (!S.order.length || S.cursor >= S.order.length){ newEpochOrder(); }
+  const bs = Math.min(batchSize(), S.order.length - S.cursor);
+  const idxs = S.order.slice(S.cursor, S.cursor + bs);
+  S.cur = runBatch(S.W, S.B, idxs);
+  S.cur.applied = false;
+  S.focus = 0;
+}
+function recordHist(){
+  const tr = evalSet(S.W, S.B, trainIdx()), te = evalSet(S.W, S.B, testIdx());
+  S.hist.push({ ep: S.epoch, trLoss: tr.loss, trAcc: tr.acc, teLoss: te.loss, teAcc: te.acc });
+  if (S.hist.length > 4000) S.hist.shift();
+  if (!isFinite(tr.loss) || tr.loss > 40){
+    S.diverged = true; stopRun();
+    flash('crit', '손실이 폭주했습니다. 학습률을 줄이고 ⟲ 가중치 초기화를 눌러 주세요.', true);
+  } else if (S.hist.length >= 4 && S.epoch % 3 === 0){
+    /* 발산까지는 아니지만 학습이 거꾸로 가는 경우 — 대개 학습률이 너무 큽니다 */
+    const first = S.hist[0].trLoss;
+    if (isFinite(tr.loss) && tr.loss > Math.max(1.2, first * 1.2))
+      flash('warn', `손실이 처음(${fmt(first,2)})보다 커졌습니다 — 학습률 α = ${lr()} — 너무 큽니다. 학습률을 줄이고 ⟲ 가중치 초기화를 눌러 보세요.`);
+  }
+}
+/* 한 단계 진행. 반환값이 false면 더 진행할 수 없습니다. */
+let introUp = true;
+function advance(){
+  if (S.phase !== 1){ flash('info', '학습 단계에서만 진행할 수 있습니다. 위 “학습 Training”을 눌러 주세요.'); return false; }
+  if (introUp){ introUp = false; clearMsg(); }
+  if (S.diverged) return false;
+  if (!trainIdx().length){ flash('warn', '학습 데이터가 없습니다. 아래에서 데이터를 나눠 주세요.'); return false; }
+  if (S.step === 0){ pickBatch(); S.step = 1; }
+  else if (S.step < 4){ S.step++; }
+  else {
+    applyG(S.W, S.B, S.cur.g, lr());
+    S.cur.applied = true;
+    S.updates++;
+    S.cursor += S.cur.idxs.length;
+    S.trained = true;
+    S.testRes = null; S.testCursor = 0;
+    if (S.cursor >= S.order.length){
+      S.epoch++; recordHist(); newEpochOrder();
+      if (S.targetEp > 0 && S.epoch >= S.targetEp && S.running){
+        stopRun();
+        const P = progress();
+        flash('ok', P.rel != null && P.rel > 0.08
+          ? `목표 ${S.targetEp} 에폭에 도달했습니다. 손실이 아직 줄고 있으니 더 돌려도 좋고, 이대로 “평가 Test”로 넘어가도 됩니다.`
+          : `목표 ${S.targetEp} 에폭에 도달했고 손실도 거의 평평해졌습니다. 위 “평가 Test”로 넘어가세요.`, true);
+      }
+    }
+    S.step = 0;
+    bndDirty = true;
+  }
+  return true;
+}
+function runBatchToEnd(){ let guard = 0; do { if (!advance()) return false; } while (S.step !== 0 && guard++ < 10); return true; }
+function runEpoch(){
+  const target = S.epoch + 1; let guard = 0;
+  while (S.epoch < target && guard++ < 600){ if (!advance()) return false; }
+  return true;
+}
+function stopRun(){
+  const was = S.running;
+  S.running = false; if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0;
+  $('bRun').textContent = '▶ 자동 학습';
+  if (was) { bndDirty = true; setTimeout(renderAll, 0); }
+}
+function startRun(){
+  if (S.phase !== 1){ flash('info', '학습 단계에서만 자동 학습이 가능합니다.'); return; }
+  S.running = true; S.acc = 0; $('bRun').textContent = '⏸ 멈춤';
+  let last = performance.now(), lastPaint = 0;
+  const tick = now => {
+    if (!S.running) return;
+    const dt = Math.min(0.1, (now - last)/1000); last = now;
+    S.acc += dt * S.speed * 5;
+    let n = 0;
+    while (S.acc >= 1 && n < 3000){ S.acc -= 1; if (!advance()){ stopRun(); break; } n++; }
+    /* 빠른 속도에서는 매 프레임 전체를 다시 그리지 않습니다 */
+    if (n && now - lastPaint > 70){ lastPaint = now; renderAll(); }
+    if (S.running) S.raf = requestAnimationFrame(tick);
+  };
+  S.raf = requestAnimationFrame(tick);
+}
+
+/* ==================== 네트워크 그림 ==================== */
+const NS = 'http://www.w3.org/2000/svg';
+const NET = { w:1000, h:470, x:[], y:[], by:[], nodes:[], edges:[], biasEdges:[], biasNodes:[], texts:[], deltas:[] };
+const mk = (t, attrs) => { const e = document.createElementNS(NS, t); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+function buildNet(){
+  const svg = $('net'); svg.textContent = '';
+  const L = S.arch.length, padL = 132, padR = 140;
+  NET.x = []; NET.y = []; NET.by = []; NET.nodes = []; NET.edges = []; NET.biasEdges = []; NET.biasNodes = []; NET.texts = []; NET.deltas = [];
+  const span = NET.w - padL - padR;
+  for (let l = 0; l < L; l++) NET.x.push(padL + (L === 1 ? 0 : span * l / (L-1)));
+  /* 층 이름(y=34)과 개수 라벨(y=50)에 가리지 않도록 첫 노드를 충분히 내립니다 (유닛 5개일 때 특히) */
+  const top = 90, bottom = 350;
+  for (let l = 0; l < L; l++){
+    const n = S.arch[l], ys = [], gap = Math.min(96, (bottom - top) / Math.max(1, n - 1 || 1));
+    const h = gap * (n - 1), y0 = (top + bottom)/2 - h/2;
+    for (let i = 0; i < n; i++) ys.push(n === 1 ? (top+bottom)/2 : y0 + gap*i);
+    NET.y.push(ys);
+    NET.by.push(bottom + 68);
+  }
+  const gEdge = mk('g', {}), gBias = mk('g', { 'pointer-events':'none' }), gNode = mk('g', {}), gText = mk('g', {});
+  svg.append(gEdge, gBias, gNode, gText);
+
+  /* 연결선 */
+  for (let l = 0; l < L-1; l++){
+    const layer = [];
+    for (let j = 0; j < S.arch[l+1]; j++){
+      const row = [];
+      for (let i = 0; i < S.arch[l]; i++){
+        const e = mk('line', { class:'edge', x1:NET.x[l]+22, y1:NET.y[l][i], x2:NET.x[l+1]-22, y2:NET.y[l+1][j] });
+        e.dataset.l = l; e.dataset.j = j; e.dataset.i = i;
+        gEdge.appendChild(e); row.push(e);
+      }
+      layer.push(row);
+    }
+    NET.edges.push(layer);
+    /* 편향 */
+    const bnode = mk('g', {});
+    const bc = mk('circle', { class:'node bias', cx:NET.x[l]+34, cy:NET.by[l], r:14, fill:'var(--b-wash)', stroke:'var(--b)' });
+    const bt = mk('text', { x:NET.x[l]+34, y:NET.by[l]+4, 'text-anchor':'middle' }); bt.textContent = '1';
+    const bl = mk('text', { class:'small', x:NET.x[l]+34, y:NET.by[l]+30, 'text-anchor':'middle' }); bl.textContent = 'bias';
+    bnode.append(bc, bt, bl); gBias.appendChild(bnode); NET.biasNodes.push(bnode);
+    const brow = [];
+    for (let j = 0; j < S.arch[l+1]; j++){
+      const e = mk('line', { class:'edge dashed', x1:NET.x[l]+48, y1:NET.by[l], x2:NET.x[l+1]-22, y2:NET.y[l+1][j] });
+      gBias.appendChild(e); brow.push(e);
+    }
+    NET.biasEdges.push(brow);
+  }
+  /* 노드 */
+  for (let l = 0; l < L; l++){
+    const layer = [], tl = [], dl = [];
+    for (let i = 0; i < S.arch[l]; i++){
+      const c = mk('circle', { class:'node', cx:NET.x[l], cy:NET.y[l][i], r:22, fill:'var(--w-wash)', 'fill-opacity':0.15 });
+      c.dataset.l = l; c.dataset.i = i; c.style.cursor = 'pointer';
+      c.addEventListener('click', () => { S.inspect = { l, i }; renderInspect(); paintNet(); drawAct(); });
+      gNode.appendChild(c); layer.push(c);
+      const t = mk('text', { x:NET.x[l], y:NET.y[l][i]+4, 'text-anchor':'middle', 'pointer-events':'none' });
+      gText.appendChild(t); tl.push(t);
+      const d = mk('text', { class:'delta', x:NET.x[l], y:NET.y[l][i]+37, 'text-anchor':'middle', 'pointer-events':'none' });
+      gText.appendChild(d); dl.push(d);
+      /* 층별 라벨 */
+      if (l === 0){
+        const lb = mk('text', { class:'lbl', x:NET.x[l]-34, y:NET.y[l][i]+4, 'text-anchor':'end' });
+        lb.textContent = FEAT[i] || ('x' + (i+1)); gText.appendChild(lb);
+      }
+      if (l === L-1){
+        const lb = mk('text', { class:'lbl', x:NET.x[l]+34, y:NET.y[l][i]+4, 'text-anchor':'start' });
+        lb.textContent = CLS[i] || ('y' + (i+1)); gText.appendChild(lb);
+      }
+    }
+    NET.nodes.push(layer); NET.texts.push(tl); NET.deltas.push(dl);
+    const head = mk('text', { class:'lyr', x:NET.x[l], y:34, 'text-anchor':'middle' });
+    head.textContent = l === 0 ? '입력층' : (l === L-1 ? '출력층 (softmax)' : `은닉층 ${l}`);
+    gText.appendChild(head);
+    const sub = mk('text', { class:'small', x:NET.x[l], y:50, 'text-anchor':'middle' });
+    sub.textContent = l === 0 ? `${S.arch[l]}개` : `${S.arch[l]}개 · ${l === L-1 ? 'softmax' : ACT[S.act].name}`;
+    gText.appendChild(sub);
+  }
+}
+
+function edgeStyle(e, w, dim){
+  const mag = Math.abs(w);
+  e.setAttribute('stroke', w >= 0 ? 'var(--w)' : 'var(--b)');
+  e.setAttribute('stroke-width', (0.8 + Math.min(7, mag * 2.4)).toFixed(2));
+  e.setAttribute('stroke-opacity', dim ? 0.13 : (0.22 + Math.min(0.68, mag * 0.55)).toFixed(2));
+}
+function paintNet(){
+  if (!S.W) return;
+  const L = S.arch.length;
+  const show = currentSample();                       // {fw, d, s} 또는 null
+  const fwActive = S.phase === 1 && S.step >= 1 && S.step <= 2;
+  const bwActive = S.phase === 1 && S.step === 3;
+  for (let l = 0; l < L-1; l++){
+    for (let j = 0; j < S.arch[l+1]; j++){
+      for (let i = 0; i < S.arch[l]; i++){
+        const e = NET.edges[l][j][i];
+        edgeStyle(e, S.W[l][j][i], false);
+        e.classList.toggle('flow', !REDUCED && fwActive);
+        e.classList.toggle('flowb', !REDUCED && bwActive);
+        if (bwActive) e.setAttribute('stroke', 'var(--resid)');
+      }
+      const be = NET.biasEdges[l][j];
+      edgeStyle(be, S.B[l][j], false);
+      be.classList.toggle('flow', !REDUCED && fwActive);
+      be.classList.toggle('flowb', !REDUCED && bwActive);
+      if (bwActive) be.setAttribute('stroke', 'var(--resid)');
+    }
+  }
+  for (let l = 0; l < L; l++){
+    for (let i = 0; i < S.arch[l]; i++){
+      const c = NET.nodes[l][i], t = NET.texts[l][i], dt = NET.deltas[l][i];
+      const sel = S.inspect.l === l && S.inspect.i === i;
+      c.classList.toggle('act', sel);
+      if (show && show.fw){
+        const a = show.fw.A[l][i];
+        const inten = l === 0 ? Math.min(1, Math.abs(a)) : (l === L-1 ? a : Math.min(1, Math.abs(a)));
+        c.setAttribute('fill', l === L-1 ? (i === 0 ? 'var(--pass)' : 'var(--fail)') : 'var(--w)');
+        c.setAttribute('fill-opacity', (0.07 + inten * 0.55).toFixed(3));
+        t.textContent = l === 0 ? String(show.s[i]) : fmt(a, 2);
+      } else {
+        c.setAttribute('fill', 'var(--w)'); c.setAttribute('fill-opacity', 0.08);
+        t.textContent = l === 0 ? '?' : '';
+      }
+      /* δ 표시: 역전파 단계 이후 */
+      const showD = show && show.d && S.phase === 1 && S.step >= 3 && l >= 1;
+      dt.textContent = showD ? 'δ ' + fmt(show.d[l-1][i], 2) : '';
+    }
+  }
+  const tag = $('flowTag');
+  if (fwActive){ tag.className = 'flowtag show fw'; tag.textContent = '→ 순전파 · 값이 앞으로'; }
+  else if (bwActive){ tag.className = 'flowtag show bw'; tag.textContent = '← 역전파 · 오차가 뒤로'; }
+  else if (S.phase >= 2){ tag.className = 'flowtag show'; tag.textContent = '🔒 가중치 고정 · 순전파만'; }
+  else if (S.phase === 1 && S.step === 4){ tag.className = 'flowtag show'; tag.textContent = '경사 하강법 · 가중치 갱신'; }
+  else tag.className = 'flowtag';
+}
+/* 그림에 표시할 샘플 (학습 중이면 배치의 focus, 평가/추론이면 각 단계의 입력) */
+function currentSample(){
+  if (S.phase === 3){
+    const s = S.infer.concat([0]);
+    return { s, fw: forward(S.W, S.B, nx(s)), d: null, label: null, tag: '사용 입력' };
+  }
+  if (S.phase === 2){
+    const te = testIdx();
+    if (!te.length) return null;
+    const i = te[Math.min(S.testCursor, te.length-1)];
+    const s = DATA[i];
+    return { s, fw: forward(S.W, S.B, nx(s)), d: null, label: s[3], idx: i, tag: '평가 샘플' };
+  }
+  if (!S.cur || S.step === 0) return null;
+  const p = S.cur.per[Math.min(S.focus, S.cur.per.length-1)];
+  return { s: DATA[p.i], fw: p.fw, d: p.d, label: DATA[p.i][3], idx: p.i, tag: '학습 샘플' };
+}
+
+/* ==================== 가중치 표 ==================== */
+let prevW = null, prevB = null;
+function buildWeights(){
+  const host = $('wpanel'); host.textContent = '';
+  for (let l = 0; l < S.arch.length-1; l++){
+    const grp = document.createElement('div'); grp.className = 'wgroup';
+    const isOut = l === S.arch.length-2;
+    const h = document.createElement('h3');
+    h.innerHTML = `<span>${isOut ? '출력층' : '은닉층 ' + (l+1)}</span>
+      <span class="m"><i class="w">W</i><sup>(${l+1})</sup></span>
+      <span class="sub">${S.arch[l+1]} × ${S.arch[l]} 가중치 + ${S.arch[l+1]} 편향 = ${S.arch[l+1]*S.arch[l] + S.arch[l+1]}개</span>`;
+    const grid = document.createElement('div');
+    grid.className = 'wgrid';
+    grid.style.gridTemplateColumns = `auto repeat(${S.arch[l]}, minmax(62px,1fr)) 14px minmax(62px,1fr)`;
+    /* 헤더 행 */
+    grid.appendChild(cell('head', ''));
+    for (let i = 0; i < S.arch[l]; i++)
+      grid.appendChild(cell('head', l === 0 ? FEAT[i] : `a${i+1}`));
+    grid.appendChild(cell('head', ''));
+    grid.appendChild(cell('head', '편향 b'));
+    for (let j = 0; j < S.arch[l+1]; j++){
+      grid.appendChild(cell('rowh', isOut ? CLS[j] : `h${j+1}`));
+      for (let i = 0; i < S.arch[l]; i++) grid.appendChild(wcell(`w-${l}-${j}-${i}`));
+      grid.appendChild(cell('head', ''));
+      grid.appendChild(wcell(`b-${l}-${j}`));
+    }
+    grp.append(h, grid); host.appendChild(grp);
+  }
+  prevW = null; prevB = null;
+}
+function cell(cls, txt){ const d = document.createElement('div'); d.className = 'wc ' + cls; d.textContent = txt; return d; }
+function wcell(id){
+  const d = document.createElement('div'); d.className = 'wc'; d.id = id;
+  d.innerHTML = '<span class="wv2">–</span><span class="wd">&nbsp;</span>';
+  return d;
+}
+function renderWeights(){
+  if (!S.W) return;
+  const frozen = S.phase >= 2;
+  $('wpanel').classList.toggle('wfrozen', frozen);
+  const justApplied = S.phase === 1 && S.step === 0 && S.cur && S.cur.applied;
+  for (let l = 0; l < S.W.length; l++)
+    for (let j = 0; j < S.W[l].length; j++){
+      for (let i = 0; i < S.W[l][j].length; i++)
+        paintCell($(`w-${l}-${j}-${i}`), S.W[l][j][i], prevW ? prevW[l][j][i] : null, justApplied, frozen);
+      paintCell($(`b-${l}-${j}`), S.B[l][j], prevB ? prevB[l][j] : null, justApplied, frozen);
+    }
+  if (justApplied){ prevW = cloneW(S.W); prevB = cloneB(S.B); }
+  $('wNote').textContent = frozen
+    ? '가중치가 고정(freeze)되었습니다 — 평가·추론 중에는 바뀌지 않습니다'
+    : (S.step === 4 ? '이번 갱신으로 바뀔 양이 Δ로 표시됩니다' : '아래 숫자가 매 갱신마다 바뀝니다');
+}
+function paintCell(el, v, prev, bump, frozen){
+  if (!el) return;
+  const vs = el.firstChild, ds = el.lastChild;
+  vs.textContent = fmt(v, 2);
+  let delta = null;
+  if (!frozen && S.step === 4 && S.cur){
+    /* 이번 갱신으로 바뀔 양을 미리 보여 줍니다 */
+    const id = el.id.split('-');
+    if (id[0] === 'w') delta = -lr() * S.cur.g.dW[+id[1]][+id[2]][+id[3]];
+    else delta = -lr() * S.cur.g.dB[+id[1]][+id[2]];
+  } else if (prev != null && Math.abs(v - prev) > 1e-9) delta = v - prev;
+  if (delta != null && Math.abs(delta) > 5e-5){
+    ds.textContent = 'Δ ' + signed(delta, 3);
+    ds.className = 'wd ' + (delta > 0 ? 'up' : 'dn');
+  } else { ds.innerHTML = '&nbsp;'; ds.className = 'wd'; }
+  el.classList.toggle('bump', !!bump && delta != null);
+  if (bump) setTimeout(() => el.classList.remove('bump'), 420);
+}
+
+/* ==================== 데이터 표 ==================== */
+function buildStrip(){
+  const tb = $('dbody'); tb.textContent = '';
+  DATA.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.id = 'dr-' + i; tr.dataset.i = i;
+    tr.innerHTML =
+      `<td>${i+1}</td><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td>
+       <td class="lbl-c ${s[3] === 0 ? 'pass' : 'fail'}">${CLS[s[3]]}</td>
+       <td class="lbl-c"><span class="tag"></span></td>
+       <td class="lbl-c pr">–</td>`;
+    tr.addEventListener('click', () => toggleSplit(i));
+    tb.appendChild(tr);
+  });
+}
+function toggleSplit(i){
+  if (!canSplit()) return;
+  const next = S.split[i] === 0 ? 1 : 0;
+  const after = S.split.slice(); after[i] = next;
+  if (!after.some(v => v === 0)){ flash('warn', '학습 데이터가 하나도 없게 됩니다.'); return; }
+  if (!after.some(v => v === 1)){ flash('warn', '평가 데이터가 하나도 없게 됩니다.'); return; }
+  S.split = after;
+  splitPreset = null;
+  if (S.trained){
+    flash('warn', '데이터 분할이 바뀌어 가중치를 초기화했습니다.');
+    resetTraining(true);
+  } else { newEpochOrder(); renderAll(); }
+}
+function renderStrip(){
+  const splitLocked = S.phase > 0;
+  const curIdx = new Set(S.phase === 1 && S.cur && S.step > 0 ? S.cur.idxs : []);
+  const cs = currentSample();
+  const focusIdx = cs && cs.idx != null ? cs.idx : -1;
+  const testMap = new Map(S.phase === 2 ? (S.testRes || []).map(r => [r.i, r]) : []);
+  DATA.forEach((s, i) => {
+    const tr = $('dr-' + i); if (!tr) return;
+    const isTr = S.split[i] === 0;
+    const tag = tr.querySelector('.tag');
+    tr.classList.toggle('tr-row', isTr);
+    tr.classList.toggle('te-row', !isTr);
+    if (S.phase === 1 && !isTr){ tag.textContent = '🔒 미사용'; tag.className = 'tag'; }
+    else { tag.textContent = isTr ? '학습' : '평가'; tag.className = 'tag ' + (isTr ? 'tr' : 'te'); }
+    tr.classList.toggle('cur', curIdx.has(i) || i === focusIdx);
+    tr.classList.toggle('locked', splitLocked);
+    const pr = tr.querySelector('.pr');
+    const t = testMap.get(i);
+    if (t){
+      pr.textContent = `${CLS[t.pred]} ${pct(t.pred === 0 ? t.yh[0] : t.yh[1])}`;
+      pr.className = 'lbl-c pr ' + (t.pred === 0 ? 'pass' : 'fail');
+      tr.classList.toggle('wrong', !t.ok);
+    } else if (S.phase === 1 && curIdx.has(i) && S.step >= 1 && S.cur){
+      const q = S.cur.per.find(x => x.i === i);
+      pr.textContent = q ? `합격 ${fmt(q.yh[0], 2)}` : '–';
+      pr.className = 'lbl-c pr';
+      tr.classList.remove('wrong');
+    } else { pr.textContent = '–'; pr.className = 'lbl-c pr'; tr.classList.remove('wrong'); }
+  });
+  /* 손으로 진행할 때만 현재 행을 보이게 따라갑니다 */
+  if (!S.running && focusIdx >= 0){
+    const el = $('dr-' + focusIdx);
+    if (el && el !== lastScrolled){ lastScrolled = el; el.scrollIntoView({ block:'nearest' }); }
+  }
+  const tr = trainIdx(), te = testIdx();
+  const cnt = (ids, k) => ids.filter(i => DATA[i][3] === k).length;
+  $('counts').innerHTML =
+    `<span class="cpill"><i class="sw" style="background:var(--w)"></i>학습 <b>${tr.length}</b>개 · 합격 ${cnt(tr,0)} / 불합격 ${cnt(tr,1)}</span>
+     <span class="cpill"><i class="sw" style="background:var(--b)"></i>평가 <b>${te.length}</b>개 · 합격 ${cnt(te,0)} / 불합격 ${cnt(te,1)}</span>`;
+  const H2 = { 0:'데이터 — 학습용과 평가용 나누기', 1:'학습에 들어가는 데이터', 2:'평가에 쓰인 데이터' };
+  const HINT = { 0:'행을 클릭하면 학습용과 평가용이 바뀝니다',
+                 1:'지금 신경망에 들어간 행이 강조됩니다',
+                 2:'평가용 행만 예측했습니다 — 학습용은 흐리게 두었습니다' };
+  if ($('dataH2')) $('dataH2').textContent = H2[S.phase] || H2[0];
+  if ($('dataHint')) $('dataHint').textContent = HINT[S.phase] || HINT[0];
+  if ($('lockLine'))
+    $('lockLine').innerHTML =
+      `🔒 평가용 <b>${te.length}개</b>는 잠겨 있습니다 — 학습에 한 번도 들어가지 않습니다. 빗금 친 행이 그것입니다.`;
+  document.querySelectorAll('[data-split]').forEach(b => {
+    b.classList.toggle('on', splitPreset != null && Math.abs(+b.dataset.split - splitPreset) < 1e-9);
+    b.disabled = splitLocked;
+  });
+  $('bShuffleSplit').disabled = splitLocked;
+  $('splitCtl').style.display = splitLocked ? 'none' : '';
+  $('splitLock').style.display = splitLocked ? '' : 'none';
+}
+let lastScrolled = null;
+
+/* ==================== 단계 설명 ==================== */
+function renderSteps(){
+  const on = S.phase === 1 ? S.step : -1;
+  document.querySelectorAll('.step').forEach(el => {
+    const s = +el.dataset.s;
+    el.classList.toggle('on', s === on);
+    el.classList.toggle('skip', S.phase >= 2 && s >= 3);
+  });
+  const c = S.cur, p = c ? c.per[Math.min(S.focus, c.per.length-1)] : null;
+  const bs = batchSize();
+  $('s0txt').innerHTML = S.phase === 1 && c
+    ? `배치 크기 <b>${c.idxs.length}</b> — 넣는 샘플 ${c.idxs.map(i => '#' + (i+1)).join(', ')} (에폭 ${S.epoch+1} 안에서 ${Math.floor(S.cursor/Math.max(1,bs))+1}번째 배치)`
+    : `이번 갱신에 쓸 학습 샘플을 고릅니다. 배치 크기가 ${bs}이면 ${bs === 1 ? '샘플 하나씩' : `샘플 ${bs}개씩 묶어`} 넣습니다.`;
+
+  if (p && S.step >= 1){
+    const s = DATA[p.i];
+    const inTxt = s.slice(0,3).map((v,i) => `${FEAT[i]} ${v}`).join(' · ');
+    const nrm = nx(s).map(v => fmt(v,1)).join(', ');
+    $('s1calc').innerHTML =
+      `<span class="cap">입력</span> <span class="val">${inTxt}</span>
+       <span class="cap">→ 정규화</span> <span class="val">${nrm}</span>
+       <span class="cap">→ 출력</span> <span class="val">합격 ${fmt(p.yh[0],3)}</span> <span class="val">불합격 ${fmt(p.yh[1],3)}</span>`;
+  } else $('s1calc').innerHTML = '<span class="cap">입력층부터 오른쪽으로 값이 흘러갑니다.</span>';
+
+  if (p && S.step >= 2){
+    const k = DATA[p.i][3];
+    $('s2calc').innerHTML =
+      `<span class="m"><i>E</i> = −log(</span><span class="val">${fmt(p.yh[k],3)}</span><span class="m">) =</span> <span class="val">${fmt(p.loss,3)}</span>
+       <span class="cap">정답은 <b>${CLS[k]}</b>${c.per.length > 1 ? ` · 배치 평균 <span class="val">${fmt(c.loss,3)}</span>` : ''}</span>`;
+  } else $('s2calc').innerHTML = '<span class="cap">예측이 정답에 가까울수록 0에 가까워집니다.</span>';
+
+  if (p && S.step >= 3){
+    const L = S.arch.length - 1;
+    const dOut = p.d[L-1].map((v,i) => `${CLS[i]} ${fmt(v,2)}`).join(' · ');
+    $('s3calc').innerHTML =
+      `<span class="cap">출력층</span> <span class="m"><i class="d">δ</i></span> <span class="val">${dOut}</span>
+       <span class="cap">→ 은닉층으로 되돌아가며 모든 <span class="m">∂<i>E</i>/∂<i class="w">w</i></span>가 채워집니다.</span>`;
+  } else $('s3calc').innerHTML = '<span class="cap">출력에서 생긴 오차를 연쇄 법칙으로 입력 쪽까지 되돌려 보냅니다.</span>';
+
+  if (c && S.step === 4){
+    let big = null, bl = 0, bj = 0, bi = 0;
+    for (let l = 0; l < c.g.dW.length; l++)
+      for (let j = 0; j < c.g.dW[l].length; j++)
+        for (let i = 0; i < c.g.dW[l][j].length; i++)
+          if (big == null || Math.abs(c.g.dW[l][j][i]) > Math.abs(big)){ big = c.g.dW[l][j][i]; bl = l; bj = j; bi = i; }
+    const nm = `w<sub>${bj+1}${bi+1}</sub><sup>(${bl+1})</sup>`;
+    $('s4calc').innerHTML =
+      `<span class="cap">가장 크게 움직이는 가중치</span>
+       <span class="m">${nm} :</span> <span class="val">${fmt(S.W[bl][bj][bi],3)}</span>
+       <span class="m">− </span><span class="val">${fmt(lr(),3)}</span><span class="m"> × </span><span class="val">${fmt(big,3)}</span>
+       <span class="m"> = </span><span class="val">${fmt(S.W[bl][bj][bi] - lr()*big,3)}</span>`;
+  } else if (c && S.step === 0 && c.applied){
+    $('s4calc').innerHTML = `<span class="cap">갱신 완료. 오른쪽 표의 Δ가 방금 바뀐 양입니다.</span>`;
+  } else $('s4calc').innerHTML = '<span class="cap">경사의 반대 방향으로 <span class="m"><i>α</i></span>만큼 움직입니다.</span>';
+}
+
+function renderBatchTable(){
+  const tb = $('btbody'), tf = $('btfoot');
+  const c = S.cur;
+  if (!c){
+    tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted)">아직 배치를 고르지 않았습니다</td></tr>`;
+    tf.innerHTML = ''; $('bNote').textContent = '';
+    return;
+  }
+  tb.innerHTML = c.per.map((p, k) => {
+    const s = DATA[p.i], done = S.step >= 1;
+    return `<tr data-k="${k}" class="${k === S.focus ? 'on' : ''}" style="cursor:pointer">
+      <td>#${p.i+1}</td><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td>
+      <td class="lbl-c ${s[3] === 0 ? 'ok-m' : ''}">${CLS[s[3]]}</td>
+      <td class="${done?'':'pend'}">${done ? fmt(p.yh[0],3) : '·'}</td>
+      <td class="${done?'':'pend'}">${done ? fmt(p.yh[1],3) : '·'}</td>
+      <td class="${S.step>=2?'':'pend'}">${S.step>=2 ? fmt(p.loss,3) : '·'}</td>
+      <td class="lbl-c">${done ? (p.ok ? '<span class="ok-m">O</span>' : '<span class="no-m">X</span>') : '·'}</td>
+    </tr>`;
+  }).join('');
+  tb.querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => {
+    S.focus = +tr.dataset.k; renderAll();
+  }));
+  tf.innerHTML = S.step >= 2
+    ? `<tr><td colspan="7" style="text-align:right;font-family:var(--sans)">배치 평균 손실 = 비용 <span class="m"><i>E</i></span></td><td>${fmt(c.loss,3)}</td><td class="lbl-c">${pct(c.acc)}</td></tr>`
+    : '';
+  $('bNote').textContent = c.per.length > 1
+    ? `${c.per.length}개 샘플의 경사를 평균내어 한 번 갱신합니다 (미니배치)`
+    : '샘플 하나의 경사로 바로 갱신합니다 (SGD)';
+}
+
+/* ==================== 뉴런 들여다보기 ==================== */
+function renderInspect(){
+  const { l, i } = S.inspect, L = S.arch.length - 1;
+  const c = currentSample();
+  const name = l === 0 ? `입력층 · ${FEAT[i] || 'x'+(i+1)}`
+    : (l === L ? `출력층 · ${CLS[i]}` : `은닉층 ${l} · h${i+1}`);
+  $('inspName').textContent = name + ' (그림의 노드를 클릭해 바꿀 수 있습니다)';
+  const tb = $('ntbody');
+  if (!c || !c.fw){
+    tb.innerHTML = `<tr><td style="text-align:left;color:var(--muted)">배치를 진행하면 이 뉴런이 어떤 계산을 하는지 숫자로 보여 줍니다.</td></tr>`;
+    $('inspNote').textContent = '';
+    return;
+  }
+  const rows = [];
+  if (l === 0){
+    rows.push(['원래 입력값', String(c.s[i])]);
+    rows.push(['정규화 <span class="m">(<i>x</i>−5)/5</span>', fmt(c.fw.A[0][i], 3)]);
+    $('inspNote').innerHTML = '입력층은 계산을 하지 않고 값을 그대로 전달합니다. 정규화(normalization)만 거칩니다.';
+  } else {
+    const prev = c.fw.A[l-1], w = S.W[l-1][i], b = S.B[l-1][i], z = c.fw.Z[l-1][i], a = c.fw.A[l][i];
+    const terms = w.map((wv, k) => `<span class="val">${fmt(wv,2)}</span>×<span class="val">${fmt(prev[k],2)}</span>`).join(' + ');
+    rows.push([`가중합 <span class="m"><i>z</i></span>`, `${terms} + <span class="val">${fmt(b,2)}</span> = <b>${fmt(z,3)}</b>`]);
+    if (l === L){
+      rows.push([`소프트맥스`, `<b>${fmt(a,3)}</b> — ${CLS[i]}일 확률`]);
+      if (c.label != null) rows.push([`정답`, CLS[c.label]]);
+      if (c.d) rows.push([`<span class="m"><i class="d">δ</i> = <i>ŷ</i> − <i>y</i></span>`, `<b>${fmt(c.d[l-1][i],3)}</b>`]);
+      $('inspNote').innerHTML = '출력층은 소프트맥스(softmax)로 두 값을 확률로 바꿉니다. 두 출력의 합은 언제나 1입니다.';
+    } else {
+      rows.push([`활성화 <span class="m"><i>a</i> = <i>φ</i>(<i>z</i>)</span>`, `<b>${fmt(a,3)}</b>`]);
+      rows.push([`<span class="m"><i>φ</i>′(<i>z</i>)</span>`, fmt(ACT[S.act].d(z, a), 3) + ' <span style="color:var(--muted)">← 역전파에서 곱해지는 값</span>']);
+      if (c.d) rows.push([`<span class="m"><i class="d">δ</i></span>`, `<b>${fmt(c.d[l-1][i],3)}</b>`]);
+      const dv = ACT[S.act].d(z, a);
+      $('inspNote').innerHTML = Math.abs(dv) < 0.05
+        ? '<span style="color:var(--warn-ink)">φ′이 거의 0입니다 — 이 뉴런으로는 오차 신호가 거의 전달되지 않습니다(기울기 소실).</span>'
+        : '가중합을 활성화 함수에 통과시킨 값이 다음 층으로 갑니다.';
+    }
+  }
+  tb.innerHTML = rows.map(([k, v]) =>
+    `<tr><td style="text-align:left;font-family:var(--sans);color:var(--ink-2);width:1%;white-space:nowrap">${k}</td>
+         <td style="text-align:left;white-space:normal">${v}</td></tr>`).join('');
+}
+
+/* ==================== 캔버스 ==================== */
+const charts = {};
+function setupCanvas(id, wrapId, h){
+  const cv = $(id), wrap = $(wrapId);
+  charts[id] = { cv, wrap, h, ctx: cv.getContext('2d') };
+  return charts[id];
+}
+function fit(c){
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.wrap.clientWidth || 300;
+  c.wrap.style.height = c.h + 'px';
+  c.cv.width = Math.round(w * dpr); c.cv.height = Math.round(c.h * dpr);
+  c.cv.style.width = w + 'px'; c.cv.style.height = c.h + 'px';
+  c.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.W = w; c.H = c.h;
+}
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let bndOff = null;
+/* '#RRGGBB' 또는 'rgb(r,g,b)' → [r,g,b] */
+function rgb(s){
+  if (s[0] === '#'){
+    const v = s.length === 4
+      ? [s[1]+s[1], s[2]+s[2], s[3]+s[3]]
+      : [s.slice(1,3), s.slice(3,5), s.slice(5,7)];
+    return v.map(x => parseInt(x, 16));
+  }
+  const m = s.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  return m ? [+m[1], +m[2], +m[3]] : [128,128,128];
+}
+
+function drawLoss(){
+  const c = charts.cvLoss; if (!c) return; fit(c);
+  const g = c.ctx, W = c.W, H = c.H, pad = { l:44, r:10, t:10, b:24 };
+  g.clearRect(0,0,W,H);
+  const h = S.hist;
+  const maxEp = Math.max(8, h.length ? h[h.length-1].ep : 0);
+  let maxL = 0.1;
+  for (const p of h){ if (isFinite(p.trLoss)) maxL = Math.max(maxL, p.trLoss); if (S.showTest && isFinite(p.teLoss)) maxL = Math.max(maxL, p.teLoss); }
+  maxL = Math.min(maxL * 1.15, 12);
+  const X = e => pad.l + (W - pad.l - pad.r) * (maxEp ? e/maxEp : 0);
+  const Y = v => pad.t + (H - pad.t - pad.b) * (1 - Math.min(1, v/maxL));
+  /* 격자 */
+  g.strokeStyle = cssVar('--grid'); g.lineWidth = 1; g.font = '11px ' + cssVar('--mono'); g.fillStyle = cssVar('--muted');
+  for (let k = 0; k <= 4; k++){
+    const v = maxL * k/4, y = Y(v);
+    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(W-pad.r, y); g.stroke();
+    g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(v.toFixed(2), pad.l-6, y);
+  }
+  g.strokeStyle = cssVar('--axis');
+  g.beginPath(); g.moveTo(pad.l, pad.t); g.lineTo(pad.l, H-pad.b); g.lineTo(W-pad.r, H-pad.b); g.stroke();
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let k = 0; k <= 4; k++){ const e = Math.round(maxEp*k/4); g.fillText(String(e), X(e), H-pad.b+6); }
+  if (h.length < 2){
+    g.fillStyle = cssVar('--muted'); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '12px ' + cssVar('--sans');
+    g.fillText('에폭을 진행하면 손실 곡선이 그려집니다', (pad.l+W-pad.r)/2, (pad.t+H-pad.b)/2);
+    return;
+  }
+  const line = (key, color, dash) => {
+    g.save(); g.setLineDash(dash || []); g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
+    let started = false;
+    for (const p of h){ const v = p[key]; if (!isFinite(v)) continue;
+      const x = X(p.ep), y = Y(v); started ? g.lineTo(x,y) : (g.moveTo(x,y), started = true); }
+    g.stroke(); g.restore();
+  };
+  if (S.showTest) line('teLoss', cssVar('--b'), [5,4]);
+  line('trLoss', cssVar('--w'));
+  const last = h[h.length-1];
+  if (isFinite(last.trLoss)){
+    g.fillStyle = cssVar('--w'); g.beginPath(); g.arc(X(last.ep), Y(last.trLoss), 3.5, 0, 7); g.fill();
+  }
+}
+
+function drawBnd(){
+  const c = charts.cvBnd; if (!c || !S.W) return; fit(c);
+  const g = c.ctx, W = c.W, H = c.H, pad = { l:30, r:10, t:10, b:24 };
+  g.clearRect(0,0,W,H);
+  const pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+  const N = 72, m = norm(S.bndMeal);
+  const off = bndOff || (bndOff = document.createElement('canvas'));
+  off.width = N; off.height = N;
+  const octx = off.getContext('2d'), img = octx.createImageData(N, N);
+  const cp = rgb(cssVar('--pass')), cf = rgb(cssVar('--fail'));
+  for (let a = 0; a < N; a++)
+    for (let b = 0; b < N; b++){
+      const y = forward(S.W, S.B, [norm((a+0.5)/N*10), norm((b+0.5)/N*10), m]).A[S.W.length][0];
+      const pass = y >= 0.5, c = pass ? cp : cf, t = pass ? (y-0.5)*2 : (0.5-y)*2;
+      const k = ((N-1-b)*N + a) * 4;
+      img.data[k] = c[0]; img.data[k+1] = c[1]; img.data[k+2] = c[2];
+      img.data[k+3] = Math.round((0.10 + t*0.60) * 255);
+    }
+  octx.putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = true;
+  g.drawImage(off, pad.l, pad.t, pw, ph);
+  g.strokeStyle = cssVar('--axis'); g.lineWidth = 1;
+  g.strokeRect(pad.l, pad.t, pw, ph);
+  g.font = '11px ' + cssVar('--mono'); g.fillStyle = cssVar('--muted');
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let k = 0; k <= 10; k += 5) g.fillText(String(k), pad.l + pw*k/10, pad.t+ph+6);
+  g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (let k = 0; k <= 10; k += 5) g.fillText(String(k), pad.l-5, pad.t + ph*(1-k/10));
+  /* 샘플 */
+  const cur = currentSample();
+  DATA.forEach((s, i) => {
+    const x = pad.l + pw*s[0]/10, y = pad.t + ph*(1 - s[1]/10);
+    const isTest = S.split[i] === 1;
+    const col = s[3] === 0 ? cssVar('--pass') : cssVar('--fail');
+    g.beginPath(); g.arc(x, y, isTest ? 5.5 : 4.5, 0, 7);
+    if (isTest){ g.fillStyle = cssVar('--surface'); g.fill(); g.lineWidth = 2.2; g.strokeStyle = col; g.stroke(); }
+    else { g.fillStyle = col; g.fill(); }
+    if (cur && cur.idx === i){
+      g.beginPath(); g.arc(x, y, 9, 0, 7); g.lineWidth = 2; g.strokeStyle = cssVar('--ink'); g.stroke();
+    }
+  });
+  if (S.phase === 3){
+    const x = pad.l + pw*S.infer[0]/10, y = pad.t + ph*(1 - S.infer[1]/10);
+    g.beginPath(); g.arc(x, y, 7, 0, 7); g.fillStyle = cssVar('--ink'); g.fill();
+    g.beginPath(); g.arc(x, y, 11, 0, 7); g.lineWidth = 1.5; g.strokeStyle = cssVar('--ink'); g.stroke();
+  }
+}
+
+function drawAct(){
+  const c = charts.cvAct; if (!c) return; fit(c);
+  const g = c.ctx, W = c.W, H = c.H, pad = { l:34, r:10, t:10, b:22 };
+  g.clearRect(0,0,W,H);
+  const A = ACT[S.act], pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+  const X = z => pad.l + pw*(z-A.lo)/(A.hi-A.lo);
+  const Y = v => pad.t + ph*(1-(v-A.ylo)/(A.yhi-A.ylo));
+  g.strokeStyle = cssVar('--grid'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(pad.l, Y(0)); g.lineTo(W-pad.r, Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(0), pad.t); g.lineTo(X(0), H-pad.b); g.stroke();
+  g.font = '11px ' + cssVar('--mono'); g.fillStyle = cssVar('--muted');
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let z = A.lo; z <= A.hi; z += (A.hi-A.lo)/4) g.fillText(z.toFixed(0), X(z), H-pad.b+4);
+  const curve = (fn, color, dash) => {
+    g.save(); g.setLineDash(dash || []); g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
+    for (let k = 0; k <= 160; k++){
+      const z = A.lo + (A.hi-A.lo)*k/160, v = fn(z);
+      k ? g.lineTo(X(z), Y(v)) : g.moveTo(X(z), Y(v));
+    }
+    g.stroke(); g.restore();
+  };
+  curve(z => A.d(z, A.f(z)), cssVar('--resid'), [5,4]);
+  curve(z => A.f(z), cssVar('--w'));
+  /* 선택한 뉴런의 z */
+  const cur = currentSample(), { l, i } = S.inspect;
+  if (cur && cur.fw && l >= 1 && l < S.arch.length-1){
+    const z = cur.fw.Z[l-1][i], a = cur.fw.A[l][i];
+    if (z >= A.lo && z <= A.hi){
+      g.strokeStyle = cssVar('--ink'); g.setLineDash([2,3]); g.lineWidth = 1;
+      g.beginPath(); g.moveTo(X(z), Y(A.ylo)); g.lineTo(X(z), Y(a)); g.stroke(); g.setLineDash([]);
+      g.beginPath(); g.arc(X(z), Y(a), 4, 0, 7); g.fillStyle = cssVar('--ink'); g.fill();
+    }
+  }
+}
+
+function drawLr(){
+  const c = charts.cvLr; if (!c) return; fit(c);
+  const g = c.ctx, W = c.W, H = c.H, pad = { l:46, r:10, t:10, b:24 };
+  g.clearRect(0,0,W,H);
+  const R = S.lrExp;
+  if (!R){
+    g.fillStyle = cssVar('--muted'); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '13px ' + cssVar('--sans');
+    g.fillText('“30 에폭 비교 실행”을 누르면 세 학습률의 손실 곡선이 겹쳐 그려집니다', W/2, H/2);
+    $('lrLegend').innerHTML = '';
+    return;
+  }
+  const maxEp = R.epochs;
+  /* 손실이 0.004 ~ 12 처럼 몇 자릿수에 걸쳐 있어 로그 눈금을 씁니다 */
+  const LO = 1e-3;
+  let top = 0.1;
+  for (const s of R.series) for (const v of s.loss) if (isFinite(v)) top = Math.max(top, v);
+  const HI = Math.pow(10, Math.ceil(Math.log10(Math.min(top, 100))));
+  const lg = Math.log10(HI) - Math.log10(LO);
+  const X = e => pad.l + (W-pad.l-pad.r)*e/maxEp;
+  const Y = v => {
+    const c = Math.min(HI, Math.max(LO, isFinite(v) ? v : HI));
+    return pad.t + (H-pad.t-pad.b)*(1 - (Math.log10(c)-Math.log10(LO))/lg);
+  };
+  g.strokeStyle = cssVar('--grid'); g.font = '11px ' + cssVar('--mono'); g.fillStyle = cssVar('--muted');
+  for (let e = Math.log10(LO); e <= Math.log10(HI) + 1e-9; e++){
+    const v = Math.pow(10, e), y = Y(v);
+    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(W-pad.r, y); g.stroke();
+    g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.fillText(v >= 1 ? String(v) : v.toFixed(-e), pad.l-6, y);
+  }
+  g.strokeStyle = cssVar('--axis');
+  g.beginPath(); g.moveTo(pad.l, pad.t); g.lineTo(pad.l, H-pad.b); g.lineTo(W-pad.r, H-pad.b); g.stroke();
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let k = 0; k <= 5; k++){ const e = Math.round(maxEp*k/5); g.fillText(String(e), X(e), H-pad.b+6); }
+  R.series.forEach(s => {
+    g.strokeStyle = s.color; g.lineWidth = 2; g.setLineDash(s.dash || []); g.beginPath();
+    s.loss.forEach((v, e) => { if (!isFinite(v)) return; const x = X(e), y = Y(v); e ? g.lineTo(x,y) : g.moveTo(x,y); });
+    g.stroke(); g.setLineDash([]);
+  });
+  $('lrLegend').innerHTML = R.series.map(s =>
+    `<span><i class="key" style="border-color:${s.color}${s.dash?';border-top-style:dashed':''}"></i>
+     <span class="m"><i>α</i></span> = ${s.lr} · ${s.name} — ${s.tag}
+     <span style="color:var(--muted)">(마지막 손실 ${fmt(s.loss[s.loss.length-1],3)})</span></span>`).join('');
+}
+
+/* 곡선 모양을 보고 설명을 붙입니다 — 미리 정해 둔 결론이 아니라 실제로 나온 결과입니다. */
+function verdict(loss){
+  const first = loss[0], last = loss[loss.length-1], mx = Math.max(...loss);
+  if (!isFinite(last) || last > 0.69) return '손실이 주저앉아 학습 실패';
+  if (mx > first * 3) return '크게 튄 뒤 겨우 수습 (불안정)';
+  if (last > first * 0.4) return '거의 제자리 (너무 느림)';
+  if (last < 0.05) return '꾸준히 내려가 수렴';
+  return '내려가지만 아직 멀었음';
+}
+function runLrExperiment(){
+  const epochs = 60, tr = trainIdx();
+  if (!tr.length){ flash('warn', '학습 데이터가 없습니다.'); return; }
+  const defs = [
+    { lr: 0.001, name: '작은 학습률', color: cssVar('--muted'), dash: [2,3] },
+    { lr: 0.05,  name: '보통 학습률', color: cssVar('--w') },
+    { lr: 50,    name: '큰 학습률',   color: cssVar('--resid'), dash: [6,4] }
+  ];
+  const bs = batchSize();
+  const series = defs.map(d => {
+    const W = cloneW(S.W0), B = cloneB(S.B0), loss = [];
+    loss.push(evalSet(W, B, tr).loss);
+    for (let e = 0; e < epochs; e++){
+      const ord = tr.slice();
+      if (S.shuffle){
+        const rnd = mulberry32(S.seed*31 + e*7919 + 13);
+        for (let i = ord.length-1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [ord[i],ord[j]] = [ord[j],ord[i]]; }
+      }
+      for (let p = 0; p < ord.length; p += bs) applyG(W, B, runBatch(W, B, ord.slice(p, p+bs)).g, d.lr);
+      loss.push(evalSet(W, B, tr).loss);
+    }
+    return Object.assign({}, d, { loss, tag: verdict(loss) });
+  });
+  S.lrExp = { epochs, series };
+  drawLr();
+  flash('ok', `같은 초기 가중치에서 세 학습률을 각각 ${epochs} 에폭씩 돌렸습니다.`);
+}
+
+/* ==================== 평가 ==================== */
+function scoreTest(all){
+  const te = testIdx();
+  if (!te.length){ flash('warn', '평가 데이터가 없습니다. 단계 1에서 나눠 주세요.'); return; }
+  if (!S.trained){ flash('warn', '먼저 학습을 진행해 주세요.'); return; }
+  const upto = all ? te.length : Math.min(te.length, S.testCursor + 1);
+  const res = [];
+  for (let k = 0; k < upto; k++){
+    const i = te[k], s = DATA[i], yh = forward(S.W, S.B, nx(s)).A[S.W.length];
+    const pred = yh[0] >= yh[1] ? 0 : 1;
+    res.push({ i, yh, pred, p: yh[0], ok: pred === s[3], truth: s[3] });
+  }
+  S.testRes = res;
+  S.testCursor = all ? te.length-1 : Math.min(te.length-1, S.testCursor + 1);
+  renderAll();
+}
+function renderTest(){
+  const te = testIdx(), res = S.testRes;
+  const tb = $('ttbody');
+  if (!res || !res.length){
+    tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted)">아직 평가하지 않았습니다 (평가 데이터 ${te.length}개)</td></tr>`;
+    $('testAccBig').textContent = '–';
+    $('testAccSub').textContent = '아직 평가하지 않았습니다';
+    if ($('trainAccBig')){
+      const t0 = evalSet(S.W, S.B, trainIdx());
+      $('trainAccBig').textContent = pct(t0.acc);
+      $('gapNote').textContent = '';
+    }
+    $('conf').innerHTML = confHTML(null);
+    return;
+  }
+  tb.innerHTML = res.map(r => {
+    const s = DATA[r.i];
+    return `<tr class="${r.i === (currentSample()||{}).idx ? 'on' : ''}">
+      <td>#${r.i+1}</td><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td>
+      <td class="lbl-c">${CLS[s[3]]}</td><td>${fmt(r.yh[0],3)}</td>
+      <td class="lbl-c">${CLS[r.pred]}</td>
+      <td class="lbl-c">${r.ok ? '<span class="ok-m">맞음</span>' : '<span class="no-m">틀림</span>'}</td></tr>`;
+  }).join('');
+  const c = res.filter(r => r.ok).length;
+  $('testAccBig').textContent = pct(c/res.length);
+  const trn = evalSet(S.W, S.B, trainIdx());
+  $('trainAccBig').textContent = pct(trn.acc);
+  const gap = trn.acc - c/res.length;
+  $('gapNote').textContent = res.length < te.length ? ''
+    : (gap > 0.001 ? `학습이 ${Math.round(gap*100)}%p 더 높습니다 — 그만큼 외운 몫입니다`
+                   : '두 점수가 같습니다 — 규칙을 제대로 배웠습니다');
+  $('testAccSub').textContent = `${res.length}개 중 ${c}개 맞음${res.length < te.length ? ` · ${te.length-res.length}개 남음` : ''}`;
+  $('conf').innerHTML = confHTML(res);
+}
+function confHTML(res){
+  const m = [[0,0],[0,0]];
+  if (res) for (const r of res) m[r.truth][r.pred]++;
+  const cell = (t, p) => `<div class="cv2 ${res ? (t===p ? 'hit' : (m[t][p] ? 'miss' : '')) : ''}">${res ? m[t][p] : '–'}</div>`;
+  return `<div class="ch"></div><div class="ch">예측 합격</div><div class="ch">예측 불합격</div>
+    <div class="ch">실제 합격</div>${cell(0,0)}${cell(0,1)}
+    <div class="ch">실제 불합격</div>${cell(1,0)}${cell(1,1)}`;
+}
+
+/* ==================== 추론 ==================== */
+function renderInfer(){
+  if (!S.W) return;
+  const s = S.infer.concat([0]);
+  /* 슬라이더 값이 우연히 데이터셋의 행과 같을 수 있으므로, 단정하지 않고 확인해서 알려 줍니다 */
+  const hit = DATA.findIndex(d => d[0] === s[0] && d[1] === s[1] && d[2] === s[2]);
+  const origin = $('inOrigin');
+  if (origin){
+    origin.innerHTML = hit < 0
+      ? '이 세 값은 학습 데이터에도 평가 데이터에도 없는 <strong>새로운 입력</strong>입니다. 정답(label)이 없으니 맞았는지 틀렸는지 알 수 없고, 모델은 배운 가중치로 순전파만 계산합니다.'
+      : `이 값은 마침 ${S.split[hit] === 0 ? '<strong>학습</strong>' : '<strong>평가</strong>'} 데이터 ${hit+1}번 샘플과 같습니다 (정답 ${CLS[DATA[hit][3]]}). 실제 사용에서는 이렇게 정답을 아는 경우가 없습니다 — 슬라이더를 움직여 데이터에 없는 값을 넣어 보세요.`;
+  }
+  const yh = forward(S.W, S.B, nx(s)).A[S.W.length];
+  const pred = yh[0] >= yh[1] ? 0 : 1;
+  $('inVerdict').textContent = CLS[pred];
+  $('inVerdict').style.color = pred === 0 ? 'var(--pass-ink)' : 'var(--fail-ink)';
+  $('inBarP').style.width = (yh[0]*100).toFixed(1) + '%';
+  $('inBarF').style.width = (yh[1]*100).toFixed(1) + '%';
+  $('inPP').textContent = pct(yh[0]);
+  $('inPF').textContent = pct(yh[1]);
+}
+
+/* ==================== 단계(phase) ==================== */
+function setPhase(p){
+  if (p === 1 && !trainIdx().length){ flash('warn', '학습 데이터가 없습니다. 표에서 행을 눌러 나눠 주세요.'); return; }
+  if (p >= 2 && !S.trained){ flash('warn', '먼저 학습을 진행해 주세요. (한 단계 → 또는 ▶ 자동 학습)'); return; }
+  if (p >= 3 && !testDone()){
+    const done = S.testRes ? S.testRes.length : 0;
+    flash('warn', done
+      ? `평가를 끝까지 마쳐야 합니다. ${testIdx().length}개 중 ${done}개만 평가했습니다 — “평가 데이터 전체 평가”를 눌러 주세요.`
+      : '먼저 평가 데이터로 성능을 재 주세요.');
+    return;
+  }
+  if (p < 2 && S.phase >= 2){ flash('info', '학습으로 돌아갑니다. 평가 결과를 보고 모델을 고치면 데이터 누수(data leakage)가 되어 평가 점수를 믿기 어려워집니다 — 실무에서는 이럴 때 검증(validation) 데이터를 씁니다.'); }
+  stopRun();
+  S.phase = p;
+  document.querySelector('.wrap').dataset.tab = String(p);
+  window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+  if (p === 2 && !S.testRes) S.testCursor = 0;
+  if (p === 3) S.inspect = { l: S.arch.length-1, i: 0 };
+  bndDirty = true;
+  renderAll();
+}
+function renderPhase(){
+  document.querySelectorAll('.ph').forEach(el => {
+    const p = +el.dataset.p;
+    el.classList.toggle('on', p === S.phase);
+    el.classList.toggle('done', p < S.phase);
+    el.disabled = (p === 1 && !trainIdx().length) || (p >= 2 && !S.trained) || (p >= 3 && !testDone());
+    if (p === 2) el.classList.toggle('ready', S.phase === 1 && S.trained && progress().ready);
+  });
+  const frozen = S.phase >= 2;
+  const lb = $('lockBadge');
+  lb.className = 'lockbadge ' + (frozen ? 'frozen' : 'live');
+  lb.textContent = frozen ? '🔒 가중치 고정됨' : '가중치 학습 중';
+  ['bStep','bBatch','bEpoch','bRun','bReset'].forEach(id => { $(id).disabled = S.phase !== 1; });
+  /* 설정은 평가 전까지(단계 0~1) 바꿀 수 있습니다 */
+  const cfgLocked = S.phase > 1;
+  $('batchSel').disabled = $('layerSel').disabled = $('actSel').disabled = $('targetSel').disabled = cfgLocked;
+  $('unitWrap').querySelectorAll('button').forEach(b => { b.disabled = cfgLocked; });
+  /* 그림 위의 모델 구조 줄은 평가·추론 탭에도 함께 보이므로, 그때는 감추고 고정 표시 */
+  $('modelBar').style.display = cfgLocked ? 'none' : '';
+  $('structLock').style.display = cfgLocked ? '' : 'none';
+  $('aUp').disabled = $('aDown').disabled = cfgLocked;
+  $('bTestAll').disabled = $('bTestStep').disabled = $('bTestReset').disabled = S.phase < 2;
+  ['inS','inF','inM'].forEach(id => { $(id).disabled = S.phase < 3; });
+  $('stName').textContent = S.phase === 1 ? STEP_NAMES[S.step]
+    : (S.phase === 0 ? '데이터를 나누는 중' : (S.phase === 2 ? '평가 중 — 순전파만' : '추론 중 — 순전파만'));
+}
+
+/* ==================== 전체 렌더 ==================== */
+let bndDirty = true, lastBnd = 0;
+function renderAll(){
+  if (!S.W) return;
+  renderPhase();
+  /* 상태 */
+  $('stEpoch').textContent = S.epoch;
+  $('stIter').textContent = S.updates;
+  const stepEls = $('stepper').children;
+  for (let k = 0; k < stepEls.length; k++){
+    stepEls[k].classList.toggle('on', S.phase === 1 && k === S.step);
+    stepEls[k].classList.toggle('done', S.phase === 1 && k < S.step);
+  }
+  const tr = evalSet(S.W, S.B, trainIdx());
+  $('tLoss').textContent = isFinite(tr.loss) ? fmt(tr.loss, 3) : '–';
+  $('tAcc').textContent = pct(tr.acc);
+  $('tAccS').textContent = `학습 ${tr.n}개 기준`;
+  if (S.testRes && S.testRes.length){
+    const c = S.testRes.filter(r => r.ok).length;
+    $('tTest').textContent = pct(c/S.testRes.length);
+    $('tTestS').textContent = `평가 ${S.testRes.length}개 중 ${c}개`;
+  } else { $('tTest').textContent = '–'; $('tTestS').textContent = '단계 3에서 측정'; }
+  const bs = batchSize(), n = trainIdx().length;
+  const upd = Math.ceil(n / bs);
+  $('tUpd').textContent = upd + '회';
+  $('tUpdS').textContent = `학습 ${n}개 ÷ 배치 ${bs} · 반복(iteration)`;
+  $('n1').textContent = n; $('n2').textContent = bs; $('n3').textContent = upd;
+  $('aVal').innerHTML = `<i>α</i> = ${lr()}`;
+
+  /* 모델 요약 */
+  let np = 0;
+  for (let l = 0; l < S.arch.length-1; l++) np += S.arch[l]*S.arch[l+1] + S.arch[l+1];
+  $('eqBig').textContent = S.arch.join(' – ');
+  $('paramCount').textContent = `가중치·편향 ${np}개 · ${ACT[S.act].name}`;
+  $('archSum').textContent = `${S.arch.join(' – ')} · 가중치·편향 ${np}개`;
+  $('actName').textContent = ACT[S.act].name;
+
+  const cs = currentSample();
+  $('curSample').innerHTML = cs
+    ? `${cs.tag}${cs.idx != null ? ' #' + (cs.idx+1) : ''} — ${cs.s.slice(0,3).map((v,i) => FEAT[i] + ' ' + v).join(' · ')}${cs.label != null ? ` · 정답 <b>${CLS[cs.label]}</b>` : ' · 정답 없음'}`
+    : '<span style="color:var(--muted)">진행하면 샘플이 여기에 표시됩니다</span>';
+
+  renderProgress();
+  paintNet(); renderWeights(); renderSteps(); renderBatchTable(); renderStrip();
+  renderInspect(); renderTest(); renderInfer();
+  drawLoss(); drawAct();
+  const now = performance.now();
+  if (bndDirty && now - lastBnd > 60){ drawBnd(); bndDirty = false; lastBnd = now; }
+}
+
+/* ==================== 이벤트 ==================== */
+$('bStep').addEventListener('click', () => { stopRun(); if (advance()) { bndDirty = true; renderAll(); } });
+$('bBatch').addEventListener('click', () => { stopRun(); runBatchToEnd(); bndDirty = true; renderAll(); });
+$('bEpoch').addEventListener('click', () => { stopRun(); runEpoch(); bndDirty = true; renderAll(); });
+$('bRun').addEventListener('click', () => { S.running ? stopRun() : startRun(); renderAll(); });
+$('bReset').addEventListener('click', () => { resetTraining(true); introUp = false; flash('info', '가중치를 초기값으로 되돌렸습니다. 데이터 분할은 그대로입니다.'); });
+$('aUp').addEventListener('click', () => { S.ai = Math.min(ALPHAS.length-1, S.ai+1); renderAll(); });
+$('aDown').addEventListener('click', () => { S.ai = Math.max(0, S.ai-1); renderAll(); });
+$('batchSel').addEventListener('change', e => {
+  const before = batchSize();
+  S.batch = +e.target.value;
+  const after = batchSize();
+  /* 배치가 n배가 되면 에폭당 갱신 횟수가 n배 줄어듭니다.
+     같은 에폭 수로 비슷하게 배우려면 학습률도 n배가 되어야 합니다(선형 스케일링). */
+  if (after !== before && before > 0){
+    const want = lr() * (after / before);
+    let best = 0;
+    for (let i = 1; i < ALPHAS.length; i++)
+      if (Math.abs(Math.log(ALPHAS[i]/want)) < Math.abs(Math.log(ALPHAS[best]/want))) best = i;
+    if (best !== S.ai){
+      const from = lr(); S.ai = best;
+      flash('info', `배치 크기 ${before} → ${after}. 에폭당 갱신 횟수가 ${(after/before).toFixed(1)}배 줄어들어 학습률도 함께 조정했습니다 (α ${from} → ${lr()}). 직접 바꿔도 됩니다.`);
+    }
+  }
+  S.step = 0; S.cur = null; newEpochOrder(); renderAll();
+});
+$('speed').addEventListener('change', e => { S.speed = +e.target.value; });
+$('shuffleOn').addEventListener('change', e => { S.shuffle = e.target.checked; newEpochOrder(); renderAll(); });
+$('showTest').addEventListener('change', e => {
+  S.showTest = e.target.checked;
+  $('lgTest').style.display = S.showTest ? '' : 'none';
+  $('testPeekNote').style.display = S.showTest ? '' : 'none';
+  drawLoss();
+});
+$('actSel').addEventListener('change', e => { S.act = e.target.value; resetTraining(true); flash('info', `활성화 함수를 ${ACT[S.act].name}로 바꾸고 가중치를 초기화했습니다.`); });
+$('layerSel').addEventListener('change', e => {
+  const n = Math.max(1, Math.min(MAX_LAYERS, +e.target.value));
+  const cur = S.hidden.slice();
+  while (cur.length < n) cur.push(cur[cur.length-1] || 3);
+  cur.length = n;
+  S.hidden = cur; applyHidden(); resetTraining(true);
+  flash('info', `은닉층을 ${n}개 층(${S.hidden.join('–')}) 구성으로 바꾸고 가중치를 초기화했습니다.`);
+});
+$('targetSel').addEventListener('change', e => {
+  S.targetEp = +e.target.value;
+  flash('info', S.targetEp ? `목표 에폭을 ${S.targetEp} 회로 잡았습니다.` : '목표 에폭 없이 계속 학습합니다.');
+  renderAll();
+});
+document.querySelectorAll('[data-split]').forEach(b => b.addEventListener('click', () => {
+  if (!canSplit()) return;
+  splitRatio = +b.dataset.split; splitSeq = 0; autoSplit(splitRatio, splitSeq);
+  const had = S.trained;
+  resetTraining(true);
+  flash('info', `학습 : 평가 = ${Math.round(splitRatio*10)} : ${10-Math.round(splitRatio*10)} 비율로 나눴습니다.`
+    + (had ? ' 분할이 바뀌어 가중치를 초기화했습니다.' : ''));
+}));
+$('bShuffleSplit').addEventListener('click', () => {
+  if (!canSplit()) return;
+  const had = S.trained;
+  splitSeq++; autoSplit(splitRatio, splitSeq); resetTraining(true);
+  flash('info', '같은 비율로 다시 무작위로 나눴습니다.' + (had ? ' 가중치도 초기화했습니다.' : ''));
+});
+$('rail').addEventListener('click', e => { const b = e.target.closest('.ph'); if (b && !b.disabled) setPhase(+b.dataset.p); });
+$('bTestAll').addEventListener('click', () => scoreTest(true));
+$('bTestStep').addEventListener('click', () => {
+  const te = testIdx();
+  if (S.testRes && S.testRes.length >= te.length){ flash('info', '평가 데이터를 모두 평가했습니다.'); return; }
+  scoreTest(false);
+});
+$('bTestReset').addEventListener('click', () => { S.testRes = null; S.testCursor = 0; renderAll(); });
+$('bLrRun').addEventListener('click', runLrExperiment);
+$('bLrClear').addEventListener('click', () => { S.lrExp = null; drawLr(); });
+$('bndMeal').addEventListener('input', e => { S.bndMeal = +e.target.value; $('bndMealV').textContent = e.target.value; bndDirty = true; drawBnd(); });
+[['inS',0],['inF',1],['inM',2]].forEach(([id, k]) => {
+  $(id).addEventListener('input', e => {
+    S.infer[k] = +e.target.value;
+    $(id + 'V').textContent = e.target.value;
+    bndDirty = true; renderAll();
+  });
+});
+
+/* ==================== 시작 ==================== */
+setupCanvas('cvLoss', 'wrapLoss', 170);
+setupCanvas('cvBnd', 'wrapBnd', 210);
+setupCanvas('cvAct', 'wrapAct', 190);
+setupCanvas('cvLr', 'wrapLr', 220);
+
+applyHidden();
+document.querySelector('.wrap').dataset.tab = String(S.phase);
+$('layerSel').value = String(S.hidden.length);
+$('batchSel').value = String(S.batch);
+$('targetSel').value = String(S.targetEp);
+$('speed').value = String(S.speed);
+autoSplit(splitRatio, splitSeq);
+resetTraining(true);
+drawLr();
+flash('info', '① 아래 표에서 데이터를 나눈 뒤 ② “학습 Training”을 눌러 시작하세요.', true);
+
+let lastW = 0;
+new ResizeObserver(() => {
+  const w = document.querySelector('.wrap').clientWidth;
+  if (w !== lastW){ lastW = w; drawLoss(); drawAct(); drawLr(); bndDirty = true; drawBnd(); }
+}).observe(document.querySelector('.wrap'));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  setTimeout(() => { drawLoss(); drawAct(); drawLr(); drawBnd(); paintNet(); }, 60);
+});
+})();
+</script>
+</body>
+</html>
