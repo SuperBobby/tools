@@ -239,6 +239,12 @@ select.btn{padding-right:28px}
 .node{stroke:var(--axis);stroke-width:1.5;transition:fill-opacity .25s,stroke .25s,stroke-width .25s}
 .node.act{stroke:var(--ink);stroke-width:2.5}
 .nwrap{position:relative;flex:1;display:flex;align-items:center}
+.modelbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:8px 12px;background:var(--surface-2);border-radius:8px}
+.modelbar .mb-t{font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
+.modelbar .btn{background:var(--surface)}
+.modelbar .ustep{background:var(--surface)}
+.modelbar .ustep .btn.sq{background:var(--surface-2)}
+.archsum{font-family:var(--mono);font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
 .netfoot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12px;color:var(--ink-2)}
 .flowtag{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;padding:4px 14px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);opacity:0;transition:opacity .2s;pointer-events:none}
 .flowtag.show{opacity:1}
@@ -450,15 +456,6 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         </select>
       </div>
       <div class="group">
-        <label class="glbl" for="layerSel">은닉층</label>
-        <select class="btn" id="layerSel">
-          <option value="1" selected>1개 층</option>
-          <option value="2">2개 층</option>
-          <option value="3">3개 층</option>
-        </select>
-        <span class="units" id="unitWrap"></span>
-      </div>
-      <div class="group">
         <label class="glbl" for="targetSel">목표 에폭</label>
         <select class="btn" id="targetSel">
           <option value="30">30</option>
@@ -492,9 +489,31 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
   <section class="bench tabsec t1 t2 t3" id="secBench" style="--o1:3;--o2:3;--o3:2">
     <div class="panel chart">
       <div class="chart-head">
-        <h2>신경망 <span style="font-weight:400;color:var(--muted)" id="netArch"></span></h2>
+        <h2>신경망</h2>
         <span class="note">선 두께 = <span class="m">|<i class="w">w</i>|</span> · 파랑 <span class="m">+</span> / 주황 <span class="m">−</span> · 노드 클릭 → 자세히</span>
       </div>
+      <div class="modelbar" id="modelBar">
+        <span class="mb-t">모델 구조</span>
+        <div class="group">
+          <label class="glbl" for="layerSel">은닉층</label>
+          <select class="btn" id="layerSel">
+            <option value="1" selected>1개 층</option>
+            <option value="2">2개 층</option>
+            <option value="3">3개 층</option>
+          </select>
+          <span class="units" id="unitWrap"></span>
+        </div>
+        <div class="group">
+          <label class="glbl" for="actSel">활성화 함수</label>
+          <select class="btn" id="actSel">
+            <option value="sigmoid" selected>시그모이드</option>
+            <option value="tanh">tanh</option>
+            <option value="relu">ReLU</option>
+          </select>
+        </div>
+        <span class="archsum" id="archSum"></span>
+      </div>
+      <span class="lockbadge frozen" id="structLock" style="display:none">🔒 구조 고정됨 — 학습 단계에서만 바꿀 수 있습니다</span>
       <div class="nwrap">
         <svg id="net" viewBox="0 0 1000 470" role="img" aria-label="다층 퍼셉트론 구조도. 입력층, 은닉층, 출력층의 노드와 가중치 연결선을 보여줍니다."></svg>
         <div class="flowtag" id="flowTag"></div>
@@ -617,11 +636,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
     <div class="panel chart">
       <div class="chart-head"><h2>활성화 함수 (activation function) <span class="m"><i>φ</i></span></h2>
-        <select class="btn" id="actSel" style="font-size:13px;padding:4px 24px 4px 8px">
-          <option value="sigmoid" selected>시그모이드</option>
-          <option value="tanh">tanh</option>
-          <option value="relu">ReLU</option>
-        </select>
+        <span class="note" id="actName">시그모이드</span>
       </div>
       <div class="cv" id="wrapAct"><canvas id="cvAct" role="img" aria-label="활성화 함수와 그 도함수 그래프"></canvas></div>
       <div class="legend">
@@ -629,7 +644,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <span><i class="key dash" style="border-color:var(--resid)"></i><span class="m"><i>φ</i>′(<i>z</i>)</span> 역전파에 곱해지는 값</span>
         <span><i class="key dot" style="background:var(--ink)"></i>선택한 뉴런의 <span class="m"><i>z</i></span></span>
       </div>
-      <p class="tnote">활성화 함수를 바꾸면 가중치가 초기화(initialization)됩니다. <span class="m"><i>φ</i>′</span>이 0에 가까운 구간에서는 역전파 신호가 거의 사라지는데, 이것을 <strong>기울기 소실(vanishing gradient)</strong>이라고 하며 깊은 신경망의 학습이 느려지는 대표적인 원인입니다.</p>
+      <p class="tnote">활성화 함수는 위 <strong>신경망</strong> 그림의 ‘모델 구조’ 줄에서 바꿀 수 있고, 바꾸면 가중치가 초기화(initialization)됩니다. <span class="m"><i>φ</i>′</span>이 0에 가까운 구간에서는 역전파 신호가 거의 사라지는데, 이것을 <strong>기울기 소실(vanishing gradient)</strong>이라고 하며 깊은 신경망의 학습이 느려지는 대표적인 원인입니다.</p>
     </div>
   </section>
 
@@ -1208,7 +1223,8 @@ function buildNet(){
   NET.x = []; NET.y = []; NET.by = []; NET.nodes = []; NET.edges = []; NET.biasEdges = []; NET.biasNodes = []; NET.texts = []; NET.deltas = [];
   const span = NET.w - padL - padR;
   for (let l = 0; l < L; l++) NET.x.push(padL + (L === 1 ? 0 : span * l / (L-1)));
-  const top = 70, bottom = 350;
+  /* 층 이름(y=34)과 개수 라벨(y=50)에 가리지 않도록 첫 노드를 충분히 내립니다 (유닛 5개일 때 특히) */
+  const top = 90, bottom = 350;
   for (let l = 0; l < L; l++){
     const n = S.arch[l], ys = [], gap = Math.min(96, (bottom - top) / Math.max(1, n - 1 || 1));
     const h = gap * (n - 1), y0 = (top + bottom)/2 - h/2;
@@ -1275,7 +1291,6 @@ function buildNet(){
     sub.textContent = l === 0 ? `${S.arch[l]}개` : `${S.arch[l]}개 · ${l === L-1 ? 'softmax' : ACT[S.act].name}`;
     gText.appendChild(sub);
   }
-  $('netArch').textContent = S.arch.join(' – ');
 }
 
 function edgeStyle(e, w, dim){
@@ -1994,6 +2009,9 @@ function renderPhase(){
   const cfgLocked = S.phase > 1;
   $('batchSel').disabled = $('layerSel').disabled = $('actSel').disabled = $('targetSel').disabled = cfgLocked;
   $('unitWrap').querySelectorAll('button').forEach(b => { b.disabled = cfgLocked; });
+  /* 그림 위의 모델 구조 줄은 평가·추론 탭에도 함께 보이므로, 그때는 감추고 고정 표시 */
+  $('modelBar').style.display = cfgLocked ? 'none' : '';
+  $('structLock').style.display = cfgLocked ? '' : 'none';
   $('aUp').disabled = $('aDown').disabled = cfgLocked;
   $('bTestAll').disabled = $('bTestStep').disabled = $('bTestReset').disabled = S.phase < 2;
   ['inS','inF','inM'].forEach(id => { $(id).disabled = S.phase < 3; });
@@ -2035,6 +2053,8 @@ function renderAll(){
   for (let l = 0; l < S.arch.length-1; l++) np += S.arch[l]*S.arch[l+1] + S.arch[l+1];
   $('eqBig').textContent = S.arch.join(' – ');
   $('paramCount').textContent = `가중치·편향 ${np}개 · ${ACT[S.act].name}`;
+  $('archSum').textContent = `${S.arch.join(' – ')} · 가중치·편향 ${np}개`;
+  $('actName').textContent = ACT[S.act].name;
 
   const cs = currentSample();
   $('curSample').innerHTML = cs
