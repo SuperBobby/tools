@@ -534,9 +534,9 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <div class="group">
           <label class="glbl" for="actSel">활성화 함수</label>
           <select class="btn" id="actSel">
-            <option value="sigmoid" selected>시그모이드</option>
-            <option value="tanh">tanh</option>
-            <option value="relu">ReLU</option>
+            <option value="sigmoid" selected>시그모이드(sigmoid)</option>
+            <option value="tanh">하이퍼볼릭 탄젠트(tanh)</option>
+            <option value="relu">렐루(ReLU)</option>
           </select>
         </div>
         <span class="archsum" id="archSum"></span>
@@ -664,7 +664,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
     </div>
     <div class="panel chart">
       <div class="chart-head"><h2>활성화 함수 (activation function) <span class="m"><i>φ</i></span></h2>
-        <span class="note" id="actName">시그모이드</span>
+        <span class="note" id="actName">시그모이드(sigmoid)</span>
       </div>
       <div class="cv" id="wrapAct"><canvas id="cvAct" role="img" aria-label="활성화 함수와 그 도함수 그래프"></canvas></div>
       <div class="legend">
@@ -844,7 +844,7 @@ dl.gloss dd{margin:0;color:var(--ink-2)}
         <dt class="m"><i class="b">b</i><sub><i>j</i></sub></dt><dd>편향(bias). 입력과 무관하게 더해지는 값</dd>
         <dt class="m"><i>z</i></dt><dd>가중합 <span class="m">Σ<i class="w">w</i><i>a</i> + <i class="b">b</i></span></dd>
         <dt class="m"><i>a</i> = <i>φ</i>(<i>z</i>)</dt><dd>활성화(activation) 값. 뉴런의 출력</dd>
-        <dt class="m"><i>φ</i></dt><dd>활성화 함수(activation function). 시그모이드(sigmoid)·tanh·ReLU</dd>
+        <dt class="m"><i>φ</i></dt><dd>활성화 함수(activation function). 시그모이드(sigmoid)·하이퍼볼릭 탄젠트(tanh)·렐루(ReLU)</dd>
         <dt class="m"><i>ŷ</i></dt><dd>모델이 낸 확률. 소프트맥스(softmax) 출력이라 합은 1</dd>
         <dt class="m"><i>E</i></dt><dd>손실(loss). 교차 엔트로피(cross-entropy) <span class="m">−log <i>ŷ</i><sub>정답</sub></span>. 배치 평균은 비용(cost)이라 하며, 손실 함수·비용 함수는 흔히 같은 뜻으로 씁니다</dd>
         <dt class="m"><i class="d">δ</i></dt><dd>오차 신호(error signal). 그 뉴런의 <span class="m"><i>z</i></span>가 손실에 주는 영향</dd>
@@ -916,9 +916,9 @@ const STEP_NAMES = ['미니배치 선택','순전파 (forward)','손실 계산',
 const MAX_UNITS = 5, MAX_LAYERS = 3;   /* 목표 에폭 선택지는 위 HTML 의 targetSel 에 있습니다 */
 
 const ACT = {
-  sigmoid:{ name:'시그모이드', f:z=>1/(1+Math.exp(-z)), d:(z,a)=>a*(1-a), tex:'1/(1+e^-z)', lo:-6, hi:6, ylo:-0.1, yhi:1.1 },
-  tanh:   { name:'tanh',       f:z=>Math.tanh(z),       d:(z,a)=>1-a*a,   tex:'tanh(z)',   lo:-3, hi:3, ylo:-1.2, yhi:1.2 },
-  relu:   { name:'ReLU',       f:z=>z>0?z:0,            d:(z)=>z>0?1:0,   tex:'max(0, z)', lo:-3, hi:3, ylo:-0.4, yhi:3.2 }
+  sigmoid:{ name:'시그모이드(sigmoid)',     f:z=>1/(1+Math.exp(-z)), d:(z,a)=>a*(1-a), tex:'1/(1+e^-z)', lo:-6, hi:6, ylo:-0.1, yhi:1.1 },
+  tanh:   { name:'하이퍼볼릭 탄젠트(tanh)', f:z=>Math.tanh(z),       d:(z,a)=>1-a*a,   tex:'tanh(z)',   lo:-3, hi:3, ylo:-1.2, yhi:1.2 },
+  relu:   { name:'렐루(ReLU)',              f:z=>z>0?z:0,            d:(z)=>z>0?1:0,   tex:'max(0, z)', lo:-3, hi:3, ylo:-0.4, yhi:3.2 }
 };
 
 /* ==================== 상태 ==================== */
